@@ -1,0 +1,52 @@
+[
+  {
+    "japanese": "こんにちは",
+    "romaji": "konnichiwa",
+    "english": "hello"
+  },
+  {
+    "japanese": "さようなら",
+    "romaji": "sayounara",
+    "english": "goodbye"
+  },
+  {
+    "japanese": "ありがとう",
+    "romaji": "arigatou",
+    "english": "thank you"
+  },
+  {
+    "japanese": "すみません",
+    "romaji": "sumimasen",
+    "english": "excuse me"
+  },
+  {
+    "japanese": "はい",
+    "romaji": "hai",
+    "english": "yes"
+  },
+  {
+    "japanese": "いいえ",
+    "romaji": "iie",
+    "english": "no"
+  },
+  {
+    "japanese": "おはよう",
+    "romaji": "ohayou",
+    "english": "good morning"
+  },
+  {
+    "japanese": "こんばんは",
+    "romaji": "konbanwa",
+    "english": "good evening"
+  },
+  {
+    "japanese": "おやすみ",
+    "romaji": "oyasumi",
+    "english": "good night"
+  },
+  {
+    "japanese": "わたし",
+    "romaji": "watashi",
+    "english": "I"
+  }
+] 
