@@ -126,8 +126,8 @@ The application follows a client-server architecture:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/language-learning-portal.git
-cd language-learning-portal
+git clone https://github.com/farabi1038/free-genai-bootcamp-2025/tree/50bf88c76963081741fa297750f74c52bbd2752e/lang-portal
+cd lang-portal
 ```
 
 2. Set up the backend:
@@ -158,8 +158,8 @@ npm run dev  # or yarn dev
 ```
 
 6. Open your browser and visit:
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:8080/api
+   - Frontend: http://localhost:5173 #check beforehand
+   - Backend API: http://localhost:8080/api #check beforehand
 
 ## Development Workflow
 
