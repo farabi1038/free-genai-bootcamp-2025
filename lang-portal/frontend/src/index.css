@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Nord color palette */
+  --polar-night-1: #2E3440;
+  --polar-night-2: #3B4252;
+  --polar-night-3: #434C5E;
+  --polar-night-4: #4C566A;
+  
+  --snow-storm-1: #D8DEE9;
+  --snow-storm-2: #E5E9F0;
+  --snow-storm-3: #ECEFF4;
+  
+  --frost-1: #8FBCBB;
+  --frost-2: #88C0D0;
+  --frost-3: #81A1C1;
+  --frost-4: #5E81AC;
+  
+  --aurora-red: #BF616A;
+  --aurora-orange: #D08770;
+  --aurora-yellow: #EBCB8B;
+  --aurora-green: #A3BE8C;
+  --aurora-purple: #B48EAD;
+  
+  /* Functional colors */
+  --primary-color: var(--frost-4);
+  --secondary-color: var(--aurora-green);
+  --background-color: var(--snow-storm-3);
+  --text-color: var(--polar-night-1);
+  --text-light: var(--polar-night-4);
+  --border-color: var(--snow-storm-1);
+  
+  font-family: 'Inter', system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  
+  color: var(--text-color);
+  background-color: var(--background-color);
+
+  font-synthesis: none;
+  text-rendering: optimiz
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: var(--primary-color);
+}
+
+h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--primary-color);
+}
+
+button {
+  border-radius: 6px;
+  border: 1px solid transparent;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--accent-color);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+button:hover {
+  background-color: var(--accent-hover);
+}
+
+button:focus,
+button:focus-visible {
+  outline: 2px auto var(--accent-color);
+}
+
+a {
+  font-weight: 500;
+  color: var(--accent-color);
+  text-decoration: inherit;
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+input, select, textarea {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-color);
+  background-color: var(--surface-color);
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(163, 190, 140, 0.2);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}

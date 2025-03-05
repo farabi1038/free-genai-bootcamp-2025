@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Vocabulary Quiz",
+    "thumbnail_url": "https://example.com/vocab_quiz.jpg",
+    "description": "Test your knowledge with flashcards"
+  },
+  {
+    "name": "Matching Game",
+    "thumbnail_url": "https://example.com/matching_game.jpg",
+    "description": "Match Japanese words with their English translations"
+  },
+  {
+    "name": "Reading Practice",
+    "thumbnail_url": "https://example.com/reading_practice.jpg",
+    "description": "Practice reading Japanese text with furigana"
+  }
+] 
