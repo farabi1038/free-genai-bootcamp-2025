@@ -167,6 +167,119 @@ The database includes the following tables:
 - **study_sessions**: Records of study sessions
 - **words_studied**: Records of word practice results
 
+## Testing
+
+The application includes a comprehensive test suite that verifies all API endpoints. The tests use an in-memory SQLite database to ensure they're fast and don't interfere with your development database.
+
+### Running Tests
+
+To run the tests:
+
+```bash
+# Run from the project root
+./test/run_tests.sh
+```
+
+This will:
+1. Execute all tests in the test package
+2. Generate a coverage report
+3. Display the coverage statistics
+
+### Test Results
+
+When running the tests, you should see output similar to the following:
+
+```
+=== RUN   TestGetAllWords
+[GIN] 2025/03/04 - 23:33:58 | 200 | 788.874µs | | GET "/api/words"
+--- PASS: TestGetAllWords (0.00s)
+=== RUN   TestGetWordByID
+[GIN] 2025/03/04 - 23:33:58 | 200 | 85.879µs | | GET "/api/words/1"
+--- PASS: TestGetWordByID (0.00s)
+=== RUN   TestGetAllGroups
+[GIN] 2025/03/04 - 23:33:58 | 200 | 71.387µs | | GET "/api/groups"
+--- PASS: TestGetAllGroups (0.00s)
+...
+PASS
+ok      github.com/free-genai-bootcamp-2025/lang-portal/test    0.018s
+```
+
+All tests should pass, confirming that your API endpoints are working correctly.
+
+### Test Structure
+
+The tests are organized as follows:
+
+- `test/api_test.go`: Contains all API endpoint tests
+- `internal/models/test_helpers.go`: Contains helper functions for setting up test data
+
+The test suite:
+1. Creates an in-memory SQLite database
+2. Applies the application schema
+3. Seeds test data
+4. Sets up a test Gin router
+5. Runs all endpoint tests against this router
+
+### Test Coverage
+
+The test suite covers all major API endpoints:
+- `/api/words` endpoints
+- `/api/groups` endpoints
+- `/api/study_activities` endpoints
+- `/api/dashboard` endpoints
+- `/api/reset_history` and `/api/full_reset` endpoints
+
+### Writing New Tests
+
+If you add new functionality, follow these steps to create tests:
+
+1. Add a new test function in `test/api_test.go`
+2. Use the `performRequest` helper function to simulate HTTP requests
+3. Verify the response status code and body content
+4. Run the tests to ensure they pass
+
+### Example Test
+
+```go
+func TestExampleEndpoint(t *testing.T) {
+    // Set up any required data
+    requestBody := map[string]string{
+        "key": "value",
+    }
+    
+    // Perform the request
+    resp := performRequest("POST", "/api/your_endpoint", requestBody)
+    
+    // Check the status code
+    if resp.Code != http.StatusOK {
+        t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.Code)
+    }
+    
+    // Parse and check the response
+    var response map[string]interface{}
+    json.Unmarshal(resp.Body.Bytes(), &response)
+    
+    // Assert on expected values
+    if response["result"] != "expected" {
+        t.Errorf("Expected result 'expected', got %v", response["result"])
+    }
+}
+```
+
+### Integration with Development Workflow
+
+Running tests should be part of your regular development workflow:
+
+1. **Before making changes**: Run tests to ensure everything works correctly
+2. **After making changes**: Run tests again to verify your changes didn't break existing functionality
+3. **When adding new features**: Add tests for the new functionality
+
+### Common Test Issues
+
+- **Table not found errors**: Check that the table names in your tests match the ones in your schema
+- **Failed assertions**: Verify that your API returns the expected data format
+- **Missing dependencies**: Ensure all required packages are imported in your tests
+
 ## Troubleshooting
 
 If you encounter any issues:
