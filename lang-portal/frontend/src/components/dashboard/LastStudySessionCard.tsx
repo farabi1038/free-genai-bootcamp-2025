@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { theme } from '../../styles/theme';
-import { LastStudySession } from '../../api/types';
+import { LastStudySession } from '../../api/dashboardService';
 import LoadingIndicator from '../ui/LoadingIndicator';
 
 const CardContainer = styled.div`
@@ -191,23 +191,23 @@ const LastStudySessionCard: React.FC<LastStudySessionCardProps> = ({ session, lo
         <CardTitle><CardIcon>⏱️</CardIcon> Last Study Session</CardTitle>
       </CardHeader>
       <SessionContent>
-        <ActivityName>{session.activity}</ActivityName>
-        <GroupName to={`/groups/${session.group_id}`}>{session.group}</GroupName>
-        <Timestamp>{format(parseISO(session.timestamp), 'PPpp')}</Timestamp>
+        <ActivityName>Study Session</ActivityName>
+        <GroupName to={`/groups/${session.group_id}`}>{session.group_name}</GroupName>
+        <Timestamp>{format(new Date(session.date), 'PPpp')}</Timestamp>
         
         <ResultsGrid>
           <ResultItem type="correct">
-            <ResultValue type="correct">{session.correct}</ResultValue>
+            <ResultValue type="correct">{session.score}</ResultValue>
             <ResultLabel>Correct</ResultLabel>
           </ResultItem>
           <ResultItem type="incorrect">
-            <ResultValue type="incorrect">{session.wrong}</ResultValue>
+            <ResultValue type="incorrect">{session.total - session.score}</ResultValue>
             <ResultLabel>Incorrect</ResultLabel>
           </ResultItem>
         </ResultsGrid>
       </SessionContent>
       
-      <ViewSessionButton to={`/sessions/${session.group_id}`}>
+      <ViewSessionButton to={`/sessions/${session.id}`}>
         View Session Details
       </ViewSessionButton>
     </CardContainer>

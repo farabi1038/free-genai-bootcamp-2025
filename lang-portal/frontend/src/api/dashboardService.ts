@@ -1,90 +1,105 @@
-import { format } from 'date-fns';
-import { 
-  LastStudySession as ExistingLastStudySession, 
-  StudyProgress as ExistingStudyProgress, 
-  QuickStats as ExistingQuickStats,
-  Word,
-  Group
-} from './types';
+import apiService from './apiService';
 
-// Create a function to generate mock data for testing
-const generateMockWords = (count: number): Word[] => {
-  const words: Word[] = [];
-  
-  for (let i = 0; i < count; i++) {
-    words.push({
-      id: `word-${i + 1}`,
-      japanese: `単語${i + 1}`,
-      romaji: `tango${i + 1}`,
-      english: `Word ${i + 1}`,
-      correct_count: Math.floor(Math.random() * 10),
-      wrong_count: Math.floor(Math.random() * 5)
-    });
-  }
-  
-  return words;
-};
+export interface LastStudySession {
+  id: number;
+  group_id: number;
+  group_name: string;
+  date: string;
+  score: number;
+  total: number;
+}
 
-const generateMockGroups = (count: number): Group[] => {
-  const groups: Group[] = [];
-  
-  for (let i = 0; i < count; i++) {
-    groups.push({
-      id: `group-${i + 1}`,
-      name: `Group ${i + 1}`,
-      word_count: Math.floor(Math.random() * 30) + 10
-    });
-  }
-  
-  return groups;
-};
+export interface StudyProgress {
+  total_words: number;
+  words_studied: number;
+  words_mastered: number;
+  completion_rate: number;
+}
 
-// Generate mock data
-const mockWords = generateMockWords(100);
-const mockGroups = generateMockGroups(8);
+export interface QuickStats {
+  total_groups: number;
+  total_words: number;
+  total_sessions: number;
+  average_score: number;
+}
 
-// Dashboard Service
-const DashboardService = {
-  getLastStudySession: async (): Promise<ExistingLastStudySession | null> => {
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
+// Set to false to use the real API
+const USE_MOCK_API = false;
+
+const getDashboardService = () => {
+  return {
+    getLastStudySession: async (): Promise<LastStudySession | null> => {
+      if (USE_MOCK_API) {
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Return mock data for development
+        return {
+          id: 1,
+          group_id: 2,
+          group_name: "Basic Phrases",
+          date: "2023-06-15T14:30:00Z",
+          score: 8,
+          total: 10
+        };
+      }
+      
+      try {
+        const response = await apiService.get<LastStudySession | null>('/last_session');
+        return response;
+      } catch (error) {
+        console.error('Error fetching last study session:', error);
+        throw error;
+      }
+    },
     
-    // 10% chance of no last session
-    if (Math.random() > 0.9) {
-      return null;
+    getStudyProgress: async (): Promise<StudyProgress> => {
+      if (USE_MOCK_API) {
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Return mock data for development
+        return {
+          total_words: 200,
+          words_studied: 85,
+          words_mastered: 42,
+          completion_rate: 21
+        };
+      }
+      
+      try {
+        const response = await apiService.get<StudyProgress>('/progress');
+        return response;
+      } catch (error) {
+        console.error('Error fetching study progress:', error);
+        throw error;
+      }
+    },
+    
+    getQuickStats: async (): Promise<QuickStats> => {
+      if (USE_MOCK_API) {
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Return mock data for development
+        return {
+          total_groups: 5,
+          total_words: 200,
+          total_sessions: 15,
+          average_score: 76
+        };
+      }
+      
+      try {
+        const response = await apiService.get<QuickStats>('/stats');
+        return response;
+      } catch (error) {
+        console.error('Error fetching quick stats:', error);
+        throw error;
+      }
     }
-    
-    const randomGroup = mockGroups[Math.floor(Math.random() * mockGroups.length)];
-    
-    return {
-      activity: ['Flashcards', 'Multiple Choice', 'Typing Practice', 'Matching Game'][Math.floor(Math.random() * 4)],
-      timestamp: format(new Date(Date.now() - Math.random() * 86400000 * 3), "yyyy-MM-dd'T'HH:mm:ss"),
-      correct: Math.floor(Math.random() * 15) + 5,
-      wrong: Math.floor(Math.random() * 10),
-      group: randomGroup.name,
-      group_id: randomGroup.id
-    };
-  },
-  
-  getStudyProgress: async (): Promise<ExistingStudyProgress> => {
-    await new Promise(resolve => setTimeout(resolve, 700)); // Simulate API delay
-    
-    return {
-      wordsStudied: Math.floor(Math.random() * 150) + 50,
-      totalWords: mockWords.length,
-      masteryRate: Math.floor(Math.random() * 45) + 55
-    };
-  },
-  
-  getQuickStats: async (): Promise<ExistingQuickStats> => {
-    await new Promise(resolve => setTimeout(resolve, 600)); // Simulate API delay
-    
-    return {
-      successRate: Math.floor(Math.random() * 30) + 70,
-      totalSessions: Math.floor(Math.random() * 50) + 10,
-      activeGroups: mockGroups.length,
-      streak: Math.floor(Math.random() * 10) + 1
-    };
-  }
+  };
 };
 
-export default DashboardService; 
+const dashboardService = getDashboardService();
+export default dashboardService; 

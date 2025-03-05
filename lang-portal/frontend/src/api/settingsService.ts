@@ -1,4 +1,5 @@
 import { delay } from './utils';
+import apiService from './apiService';
 
 export interface UserSettings {
   theme: 'light' | 'dark' | 'system';
@@ -22,80 +23,106 @@ const defaultSettings: UserSettings = {
   autoAdvanceTimeout: 5
 };
 
-const USE_MOCK_API = true;
+// Set to false to use the real API
+const USE_MOCK_API = false;
 
-const SettingsService = {
-  getUserSettings: async (): Promise<UserSettings> => {
-    if (USE_MOCK_API) {
-      await delay(500);
-      // Try to get from localStorage first
-      const savedSettings = localStorage.getItem('userSettings');
-      if (savedSettings) {
-        return JSON.parse(savedSettings);
+const LOCAL_STORAGE_THEME_KEY = 'lang_portal_theme';
+
+const getSettingsService = () => {
+  return {
+    getUserSettings: async (): Promise<UserSettings> => {
+      if (USE_MOCK_API) {
+        await delay(500);
+        // Try to get from localStorage first
+        const savedSettings = localStorage.getItem('userSettings');
+        if (savedSettings) {
+          return JSON.parse(savedSettings);
+        }
+        // Otherwise return defaults
+        return defaultSettings;
       }
-      // Otherwise return defaults
-      return defaultSettings;
-    }
 
-    try {
-      const response = await fetch('/api/settings');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      try {
+        const response = await apiService.get<UserSettings>('/settings');
+        return response;
+      } catch (error) {
+        console.error('Error fetching user settings:', error);
+        // Fall back to localStorage if API fails
+        const savedSettings = localStorage.getItem('userSettings');
+        if (savedSettings) {
+          return JSON.parse(savedSettings);
+        }
+        return defaultSettings;
       }
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching user settings:', error);
-      throw error;
-    }
-  },
+    },
 
-  updateUserSettings: async (settings: UserSettings): Promise<UserSettings> => {
-    if (USE_MOCK_API) {
-      await delay(700);
-      // Save to localStorage for persistence
-      localStorage.setItem('userSettings', JSON.stringify(settings));
-      return settings;
-    }
-
-    try {
-      const response = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(settings),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    saveUserSettings: async (settings: UserSettings): Promise<void> => {
+      if (USE_MOCK_API) {
+        await delay(500);
+        localStorage.setItem('userSettings', JSON.stringify(settings));
+        return;
       }
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating user settings:', error);
-      throw error;
-    }
-  },
 
-  resetUserSettings: async (): Promise<UserSettings> => {
-    if (USE_MOCK_API) {
-      await delay(600);
-      // Remove from localStorage and return defaults
-      localStorage.removeItem('userSettings');
-      return defaultSettings;
-    }
-
-    try {
-      const response = await fetch('/api/settings/reset', {
-        method: 'POST',
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      try {
+        await apiService.post('/settings', settings);
+        // Still save to localStorage as a backup
+        localStorage.setItem('userSettings', JSON.stringify(settings));
+      } catch (error) {
+        console.error('Error saving user settings:', error);
+        // At least save to localStorage if API fails
+        localStorage.setItem('userSettings', JSON.stringify(settings));
+        throw error;
       }
-      return await response.json();
-    } catch (error) {
-      console.error('Error resetting user settings:', error);
-      throw error;
+    },
+
+    resetStudyHistory: async (): Promise<void> => {
+      if (USE_MOCK_API) {
+        await delay(1000);
+        console.log('Mock API: Study history reset');
+        return;
+      }
+
+      try {
+        await apiService.post('/reset_history', {});
+      } catch (error) {
+        console.error('Error resetting study history:', error);
+        throw error;
+      }
+    },
+
+    performFullReset: async (): Promise<void> => {
+      if (USE_MOCK_API) {
+        await delay(1500);
+        localStorage.removeItem('userSettings');
+        console.log('Mock API: Full reset performed');
+        return;
+      }
+
+      try {
+        await apiService.post('/full_reset', {});
+        // Clear localStorage
+        localStorage.removeItem('userSettings');
+      } catch (error) {
+        console.error('Error performing full reset:', error);
+        throw error;
+      }
+    },
+    
+    // Theme handling utility
+    setTheme: (theme: 'light' | 'dark' | 'system'): void => {
+      localStorage.setItem(LOCAL_STORAGE_THEME_KEY, theme);
+      
+      if (theme === 'system') {
+        // Check system preference
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      } else {
+        // Set specific theme
+        document.documentElement.setAttribute('data-theme', theme);
+      }
     }
-  }
+  };
 };
 
-export default SettingsService; 
+const settingsService = getSettingsService();
+export default settingsService; 

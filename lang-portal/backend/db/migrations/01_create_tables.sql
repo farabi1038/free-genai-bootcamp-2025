@@ -4,7 +4,9 @@ CREATE TABLE IF NOT EXISTS words (
     japanese TEXT NOT NULL,
     romaji TEXT NOT NULL,
     english TEXT NOT NULL,
-    parts TEXT
+    parts TEXT,
+    correct_count INTEGER DEFAULT 0,
+    wrong_count INTEGER DEFAULT 0
 );
 
 -- Create groups table
@@ -36,6 +38,9 @@ CREATE TABLE IF NOT EXISTS study_sessions (
     group_id INTEGER NOT NULL,
     created_at DATETIME NOT NULL,
     study_activity_id INTEGER NOT NULL,
+    score INTEGER DEFAULT 0,
+    total INTEGER DEFAULT 0,
+    activity_id INTEGER DEFAULT 0,
     FOREIGN KEY (group_id) REFERENCES groups (id),
     FOREIGN KEY (study_activity_id) REFERENCES study_activities (id)
 );
