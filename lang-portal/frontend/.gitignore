@@ -1,0 +1,51 @@
+# Vite specific
+.vite/
+*.local
+
+# Dependencies
+/node_modules
+
+# Production
+/dist
+/build
+
+# Testing
+/coverage
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript specific
+*.tsbuildinfo
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Cache
+.npm
+.eslintcache
+.stylelintcache
+
+# Generated files
+/src/generated

@@ -1,302 +1,283 @@
-# Language Learning Portal Backend
+# Language Learning Portal
 
-This is a Go-based backend server for a language learning portal. The portal serves three main purposes:
-- Managing vocabulary inventory
-- Recording study results (Learning Record Store)
-- Acting as a unified launchpad for various learning applications
+A comprehensive web application for language learning, featuring vocabulary management, study activities, progress tracking, and personalized learning experiences.
 
-## Technical Stack
+## Project Overview
 
-- **Language**: Go
-- **Database**: SQLite3
-- **API Framework**: Gin
-- **Task Runner**: Mage
+The Language Learning Portal is a full-stack application designed to help users learn new languages through various interactive activities. The application consists of a React frontend with TypeScript and a Go backend with SQLite database, providing a complete solution for vocabulary management and study tracking.
 
-## Project Structure
+![Project Architecture](docs/architecture-diagram.png)
+
+## Directory Structure
 
 ```
-lang-portal/
-├── cmd/
-│   └── server/                # Contains the main entry point for launching the server.
-├── internal/
-│   ├── models/                # Data structures and database operations.
-│   ├── handlers/              # HTTP handlers, organized by feature.
-│   └── service/               # Business logic and application services.
-├── db/
-│   ├── migrations/            # SQL migration files to create or update database schema.
-│   └── seeds/                 # JSON seed files for initial data population.
-├── magefile.go                # Mage task definitions.
-├── setup_db.go                # Simple database setup script.
-├── go.mod                     # Go module file.
-└── words.db                   # SQLite3 database file (located at the project root).
+language-learning-portal/
+├── frontend/             # React frontend application
+│   ├── src/              # Frontend source code
+│   ├── public/           # Static assets
+│   ├── README.md         # Frontend-specific documentation
+│   └── ...               # Other frontend files
+├── backend/              # Go backend application
+│   ├── cmd/              # Application entry points
+│   ├── internal/         # Private application code
+│   ├── db/               # Database scripts and migrations
+│   ├── README.md         # Backend-specific documentation
+│   └── ...               # Other backend files
+├── docs/                 # Project documentation
+├── .gitignore            # Git ignore file
+└── README.md             # This file
 ```
 
-## Setup and Installation
+## Tech Stack
+
+### Frontend
+- **React 18** - UI library for building component-based interfaces
+- **TypeScript** - Static typing for enhanced development experience
+- **styled-components** - CSS-in-JS library for component styling
+- **React Router v6** - Declarative routing
+- **Vite** - Fast build tool with HMR
+- **Context API** - State management
+- **Material UI Icons** - Icon library
+- **date-fns** - Date utility library
+
+### Backend
+- **Go** - Primary programming language
+- **SQLite** - Embedded database
+- **Chi Router** - HTTP routing
+- **Mage** - Build automation tool
+- **Go Validator** - Request validation
+- **CORS Middleware** - Cross-origin support
+
+## Key Features
+
+### 1. Interactive Dashboard
+- Overview of learning progress
+- Recent activity summary
+- Quick stats and learning metrics
+- Direct access to study features
+
+### 2. Vocabulary Management
+- Create, read, update, and delete vocabulary words
+- Support for non-Latin scripts (e.g., Japanese with furigana)
+- Notes, examples, and difficulty ratings
+- Search and filter capabilities
+
+### 3. Group Organization
+- Organize words into thematic collections
+- Study specific word groups
+- Track progress by group
+- Smart grouping suggestions
+
+### 4. Study Activities
+- **Flashcards**: Traditional flashcard study with spaced repetition
+- **Multiple Choice**: Test comprehension with multiple choice questions
+- **Typing Practice**: Improve recall by typing translations
+- **Matching Game**: Pair words and translations in an interactive game
+
+### 5. Progress Tracking
+- Detailed session history
+- Performance metrics and analytics
+- Learning trends visualization
+- Spaced repetition algorithm for optimal learning
+
+### 6. Global Search
+- Search across words, groups, and sessions
+- Advanced filtering options
+- Highlighted search results
+- Quick access to content from anywhere in the app
+
+### 7. Customization
+- Personalized settings
+- Theme selection (light/dark)
+- Study mode preferences
+- Learning path customization
+
+## System Architecture
+
+The application follows a client-server architecture:
+
+1. **Frontend (Client)**
+   - React-based Single Page Application
+   - Component-based architecture organized by feature
+   - Responsive design for all devices
+   - Client-side routing
+
+2. **Backend (Server)**
+   - RESTful API built with Go
+   - Clean architecture with separation of concerns
+   - Data persistence with SQLite
+   - Resource-based routing
+
+3. **Data Flow**
+   - Frontend makes API requests to backend
+   - Backend processes requests and interacts with database
+   - Backend returns structured JSON responses
+   - Frontend renders UI based on response data
+
+## Getting Started
 
 ### Prerequisites
+- Node.js (v14+) for frontend development
+- Go (v1.16+) for backend development
+- npm or yarn package manager
+- Git
 
-- Go 1.18 or higher
-- SQLite development libraries
+### Setup and Installation
 
-### Installation on Ubuntu/WSL
-
-1. Install Go and SQLite dependencies:
-   ```bash
-   sudo apt update
-   sudo apt install golang-go gcc pkg-config libsqlite3-dev
-   ```
-
-2. Clone the repository and navigate to the project directory:
-   ```bash
-   cd /path/to/lang-portal
-   ```
-
-3. Download Go dependencies:
-   ```bash
-   go mod download
-   ```
-
-4. Set up the database:
-   ```bash
-   go run setup_db.go
-   ```
-
-5. Run the server:
-   ```bash
-   go run cmd/server/main.go
-   ```
-
-The server will be available at http://localhost:8080
-
-## API Endpoints and Examples
-
-### Dashboard Endpoints
-
-- **GET /api/dashboard/last_study_session**: Get the most recent study session
-  ```bash
-  curl http://localhost:8080/api/dashboard/last_study_session
-  ```
-  Example response:
-  ```json
-  {"id":1,"group_id":1,"created_at":"2025-03-04T23:18:57.162180031-06:00","study_activity_id":1,"group_name":"Basic Greetings"}
-  ```
-
-- **GET /api/dashboard/study_progress**: Get study progress statistics
-  ```bash
-  curl http://localhost:8080/api/dashboard/study_progress
-  ```
-  Example response:
-  ```json
-  {"total_available_words":10,"total_words_studied":0}
-  ```
-
-### Word Endpoints
-
-- **GET /api/words**: Get all vocabulary words
-  ```bash
-  curl http://localhost:8080/api/words
-  ```
-  
-- **GET /api/words/:id**: Get a specific word by ID
-  ```bash
-  curl http://localhost:8080/api/words/1
-  ```
-
-### Group Endpoints
-
-- **GET /api/groups**: Get all word groups
-  ```bash
-  curl http://localhost:8080/api/groups
-  ```
-  Example response:
-  ```json
-  [{"id":1,"name":"Basic Greetings"},{"id":2,"name":"Common Phrases"},{"id":3,"name":"Daily Conversations"}]
-  ```
-  
-- **GET /api/groups/:id**: Get a specific group by ID
-  ```bash
-  curl http://localhost:8080/api/groups/1
-  ```
-  
-- **GET /api/groups/:id/words**: Get all words in a specific group
-  ```bash
-  curl http://localhost:8080/api/groups/1/words
-  ```
-
-### Study Activity Endpoints
-
-- **GET /api/activities**: Get all study activities
-  ```bash
-  curl http://localhost:8080/api/activities
-  ```
-  
-- **GET /api/activities/:id**: Get a specific study activity by ID
-  ```bash
-  curl http://localhost:8080/api/activities/1
-  ```
-  
-- **POST /api/study_activities**: Create a new study session
-  ```bash
-  curl -X POST -H "Content-Type: application/json" -d '{"group_id": 1, "study_activity_id": 1}' http://localhost:8080/api/study_activities
-  ```
-  Example response:
-  ```json
-  {"id":1,"group_id":1}
-  ```
-
-### System Endpoints
-
-- **POST /api/reset_history**: Reset study history
-  ```bash
-  curl -X POST http://localhost:8080/api/reset_history
-  ```
-  
-- **POST /api/full_reset**: Perform a complete system reset
-  ```bash
-  curl -X POST http://localhost:8080/api/full_reset
-  ```
-
-## Database Schema
-
-The database includes the following tables:
-
-- **words**: Stores vocabulary words
-- **groups**: Thematic groups of words
-- **words_groups**: Join table linking words to groups
-- **study_activities**: Available learning activities
-- **study_sessions**: Records of study sessions
-- **words_studied**: Records of word practice results
-
-## Testing
-
-The application includes a comprehensive test suite that verifies all API endpoints. The tests use an in-memory SQLite database to ensure they're fast and don't interfere with your development database.
-
-### Running Tests
-
-To run the tests:
-
+1. Clone the repository:
 ```bash
-# Run from the project root
-./test/run_tests.sh
+git clone https://github.com/yourusername/language-learning-portal.git
+cd language-learning-portal
 ```
 
-This will:
-1. Execute all tests in the test package
-2. Generate a coverage report
-3. Display the coverage statistics
-
-### Test Results
-
-When running the tests, you should see output similar to the following:
-
-```
-=== RUN   TestGetAllWords
-[GIN] 2025/03/04 - 23:33:58 | 200 | 788.874µs | | GET "/api/words"
---- PASS: TestGetAllWords (0.00s)
-=== RUN   TestGetWordByID
-[GIN] 2025/03/04 - 23:33:58 | 200 | 85.879µs | | GET "/api/words/1"
---- PASS: TestGetWordByID (0.00s)
-=== RUN   TestGetAllGroups
-[GIN] 2025/03/04 - 23:33:58 | 200 | 71.387µs | | GET "/api/groups"
---- PASS: TestGetAllGroups (0.00s)
-...
-PASS
-ok      github.com/free-genai-bootcamp-2025/lang-portal/test    0.018s
+2. Set up the backend:
+```bash
+cd backend
+go mod download
+go run setup_db.go
 ```
 
-All tests should pass, confirming that your API endpoints are working correctly.
+3. Run the backend server:
+```bash
+# Using Mage
+mage run
 
-### Test Structure
-
-The tests are organized as follows:
-
-- `test/api_test.go`: Contains all API endpoint tests
-- `internal/models/test_helpers.go`: Contains helper functions for setting up test data
-
-The test suite:
-1. Creates an in-memory SQLite database
-2. Applies the application schema
-3. Seeds test data
-4. Sets up a test Gin router
-5. Runs all endpoint tests against this router
-
-### Test Coverage
-
-The test suite covers all major API endpoints:
-- `/api/words` endpoints
-- `/api/groups` endpoints
-- `/api/study_activities` endpoints
-- `/api/dashboard` endpoints
-- `/api/reset_history` and `/api/full_reset` endpoints
-
-### Writing New Tests
-
-If you add new functionality, follow these steps to create tests:
-
-1. Add a new test function in `test/api_test.go`
-2. Use the `performRequest` helper function to simulate HTTP requests
-3. Verify the response status code and body content
-4. Run the tests to ensure they pass
-
-### Example Test
-
-```go
-func TestExampleEndpoint(t *testing.T) {
-    // Set up any required data
-    requestBody := map[string]string{
-        "key": "value",
-    }
-    
-    // Perform the request
-    resp := performRequest("POST", "/api/your_endpoint", requestBody)
-    
-    // Check the status code
-    if resp.Code != http.StatusOK {
-        t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.Code)
-    }
-    
-    // Parse and check the response
-    var response map[string]interface{}
-    json.Unmarshal(resp.Body.Bytes(), &response)
-    
-    // Assert on expected values
-    if response["result"] != "expected" {
-        t.Errorf("Expected result 'expected', got %v", response["result"])
-    }
-}
+# Or directly with Go
+go run cmd/server/main.go
 ```
 
-### Integration with Development Workflow
+4. Set up the frontend:
+```bash
+cd ../frontend
+npm install  # or yarn install
+```
 
-Running tests should be part of your regular development workflow:
+5. Run the frontend development server:
+```bash
+npm run dev  # or yarn dev
+```
 
-1. **Before making changes**: Run tests to ensure everything works correctly
-2. **After making changes**: Run tests again to verify your changes didn't break existing functionality
-3. **When adding new features**: Add tests for the new functionality
+6. Open your browser and visit:
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:8080/api
 
-### Common Test Issues
+## Development Workflow
 
-- **Table not found errors**: Check that the table names in your tests match the ones in your schema
-- **Failed assertions**: Verify that your API returns the expected data format
-- **Missing dependencies**: Ensure all required packages are imported in your tests
+### Running Both Services
 
-## Troubleshooting
+For local development, you'll need to run both the frontend and backend services:
 
-If you encounter any issues:
+1. Terminal 1 (Backend):
+```bash
+cd backend
+mage run
+```
 
-1. **Database Access Errors**: Make sure SQLite development libraries are installed
-   ```bash
-   sudo apt install libsqlite3-dev
-   ```
+2. Terminal 2 (Frontend):
+```bash
+cd frontend
+npm run dev
+```
 
-2. **Missing Go Dependencies**: Ensure all dependencies are downloaded
-   ```bash
-   go mod download
-   ```
+### API Integration
 
-3. **Server Already Running**: Check if port 8080 is already in use
-   ```bash
-   sudo lsof -i :8080
-   ```
+The frontend communicates with the backend through API services defined in `frontend/src/api/`. These services handle:
 
-4. **Permission Issues**: Ensure you have write permissions in the project directory for database creation
+- Authentication and authorization
+- Data fetching and persistence
+- Error handling and retries
+- Request/response transformation
+
+Example API usage:
+```typescript
+// In a React component
+import { wordService } from '../api/wordService';
+
+// Fetch words
+const words = await wordService.getAllWords();
+
+// Add a new word
+const newWord = await wordService.createWord({
+  japanese: '猫',
+  romaji: 'neko',
+  english: 'cat'
+});
+```
+
+## Frontend Architecture
+
+The frontend follows a component-based architecture organized by feature. See [frontend/README.md](frontend/README.md) for detailed component documentation.
+
+### Key Components
+
+- **Dashboard Components**: Overview of learning progress
+- **Word Components**: Vocabulary management
+- **Group Components**: Collection management
+- **Study Components**: Learning activities
+- **UI Components**: Reusable design system
+
+### State Management
+
+- **Context API** for application-wide state
+- **Component-local state** for component-specific concerns
+- **URL parameters** for navigation state
+
+## Backend Architecture
+
+The backend follows a clean architecture pattern with clear separation of concerns. See [backend/README.md](backend/README.md) for detailed API documentation.
+
+### Key API Endpoints
+
+- **Words API**: Vocabulary management
+- **Groups API**: Collection management
+- **Activities API**: Study method definitions
+- **Sessions API**: Learning history
+- **Dashboard API**: Statistics and metrics
+
+### Database Schema
+
+The application uses SQLite with tables for words, groups, activities, sessions, and relationships between them.
+
+## Deployment
+
+### Frontend Deployment
+
+Build the frontend for production:
+```bash
+cd frontend
+npm run build
+```
+
+The output will be in the `dist` directory, which can be served by any static file server.
+
+### Backend Deployment
+
+Build the backend for production:
+```bash
+cd backend
+mage build
+```
+
+This creates an executable that can be deployed to any server supporting Go applications.
+
+## Contributing
+
+We welcome contributions to the Language Learning Portal! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+### Development Process
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- The Nord color palette for UI design
+- Open source libraries and tools that made this project possible
+- Language learning research that informed our study methods
