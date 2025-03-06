@@ -1,3 +1,10 @@
+## Business Goal:
+As a Solution Architect, after consulting with real-world AI Engineers, you have been tasked to create an architectural diagram(s) that serve as a teaching aid to help stakeholders understand the key components of GenAI workloads. The outcome is to help stakeholders visualize possible technical paths and uncertainty when adopting GenAI.
+
+We guide key stakeholders through the technical landscape without directly prescribing solutions while fostering informed discussions about infrastructure choices, integration patterns, and system dependencies across the organization.
+
+
+
 ## Infrastructure Investment Plan
 
 To maintain control over user data privacy and mitigate the rising costs of managed AI services, the company is opting to build its own AI infrastructure.
