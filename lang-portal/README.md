@@ -2,6 +2,45 @@
 
 A comprehensive web application for language learning, featuring vocabulary management, study activities, progress tracking, and personalized learning experiences.
 
+## Backend — Lang Portal
+
+### Business Goal: 
+A language learning school wants to build a prototype of learning portal which will act as three things:
+Inventory of possible vocabulary that can be learned
+Act as a  Learning record store (LRS), providing correct and wrong score on practice vocabulary
+A unified launchpad to launch different learning apps
+
+You have been tasked with creating the backend API of the application.
+
+Technical Restrictions:
+Use SQLite3 as the database
+You can use any language or framework 
+Does not require authentication/authorization, assume there is a single user
+
+
+## Frontend — Lang Portal
+
+
+### Business Goal: 
+A language learning school wants to build a prototype of learning portal which will act as three things:
+Inventory of possible vocabulary that can be learned
+Act as a record store, providing correct and wrong score on practice vocabulary
+A unified launchpad to launch different learning apps
+
+You have been tasked with creating the frontend API of the application.
+The fractional CTO has made strong recommendation that you settle on a frontend stack that is being commonly adopted and optimized for AI prototyping services.
+
+The frontend application should powered by your backend API.
+
+
+Technical Restrictions:
+The technical stack should be the following:
+Typescript (statically typed javascript)
+Tailwind CSS (css framework)
+Vite.js (frontend tool)
+ShadCN (UI components)
+
+
 ## Project Overview
 
 The Language Learning Portal is a full-stack application designed to help users learn new languages through various interactive activities. The application consists of a React frontend with TypeScript and a Go backend with SQLite database, providing a complete solution for vocabulary management and study tracking.
