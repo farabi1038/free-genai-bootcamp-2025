@@ -1,6 +1,6 @@
 # Language Learning Portal
 
-A comprehensive web application for language learning, featuring vocabulary management, study activities, progress tracking, and personalized learning experiences.
+A comprehensive web application for language learning, featuring vocabulary management, study activities, progress tracking, and personalized learning experiences. The Language Learning Portal is a full-stack application designed to help users learn new languages through various interactive activities. The application consists of a React frontend with TypeScript and a Go backend with SQLite database, providing a complete solution for vocabulary management and study tracking.
 
 ## Backend — Lang Portal
 
@@ -52,9 +52,7 @@ Technical Restrictions:
 - ShadCN (UI components)
 
 
-## Project Overview
 
-The Language Learning Portal is a full-stack application designed to help users learn new languages through various interactive activities. The application consists of a React frontend with TypeScript and a Go backend with SQLite database, providing a complete solution for vocabulary management and study tracking.
 
 ![Project Architecture](docs/architecture-diagram.png)
 
