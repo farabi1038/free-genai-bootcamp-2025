@@ -249,14 +249,33 @@ export const mockWordService = {
   },
   
   getWordById: async (id: string): Promise<Word> => {
-    await delay(300);
+    await delay(200);
     
     const word = allMockWords.find(w => w.id === id);
     if (!word) {
-      throw new Error('Word not found');
+      throw new Error(`Word with id ${id} not found`);
     }
     
     return word;
+  },
+  
+  createWord: async (wordData: any): Promise<Word> => {
+    await delay(300);
+    
+    const newWord: Word = {
+      id: `word-${allMockWords.length + 1}`,
+      japanese: wordData.japanese,
+      romaji: wordData.romaji,
+      english: wordData.english,
+      correct_count: 0,
+      wrong_count: 0,
+      groups: wordData.groups || []
+    };
+    
+    // In a real implementation, we would add the word to the list
+    // allMockWords.push(newWord);
+    
+    return newWord;
   }
 };
 

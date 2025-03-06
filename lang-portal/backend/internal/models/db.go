@@ -19,6 +19,11 @@ func InitDB(dataSourceName string) (*sql.DB, error) {
 		return nil, err
 	}
 
+	// Initialize schema if needed
+	if err = createSchema(db); err != nil {
+		return nil, err
+	}
+
 	DB = db
 	return db, nil
 } 

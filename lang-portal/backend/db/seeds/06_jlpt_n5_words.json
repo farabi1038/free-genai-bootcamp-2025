@@ -1,0 +1,412 @@
+[
+  {
+    "japanese": "あの",
+    "romaji": "ano",
+    "english": "that"
+  },
+  {
+    "japanese": "ありがとう",
+    "romaji": "arigatou",
+    "english": "thank you"
+  },
+  {
+    "japanese": "いい",
+    "romaji": "ii",
+    "english": "good"
+  },
+  {
+    "japanese": "いいえ",
+    "romaji": "iie",
+    "english": "no"
+  },
+  {
+    "japanese": "いく",
+    "romaji": "iku",
+    "english": "to go"
+  },
+  {
+    "japanese": "いつ",
+    "romaji": "itsu",
+    "english": "when"
+  },
+  {
+    "japanese": "いま",
+    "romaji": "ima",
+    "english": "now"
+  },
+  {
+    "japanese": "うち",
+    "romaji": "uchi",
+    "english": "house"
+  },
+  {
+    "japanese": "えき",
+    "romaji": "eki",
+    "english": "station"
+  },
+  {
+    "japanese": "おおきい",
+    "romaji": "ookii",
+    "english": "big"
+  },
+  {
+    "japanese": "おかね",
+    "romaji": "okane",
+    "english": "money"
+  },
+  {
+    "japanese": "おきる",
+    "romaji": "okiru",
+    "english": "to wake up"
+  },
+  {
+    "japanese": "おちゃ",
+    "romaji": "ocha",
+    "english": "tea"
+  },
+  {
+    "japanese": "おとこ",
+    "romaji": "otoko",
+    "english": "man"
+  },
+  {
+    "japanese": "おなか",
+    "romaji": "onaka",
+    "english": "stomach"
+  },
+  {
+    "japanese": "おなじ",
+    "romaji": "onaji",
+    "english": "same"
+  },
+  {
+    "japanese": "おんな",
+    "romaji": "onna",
+    "english": "woman"
+  },
+  {
+    "japanese": "がくせい",
+    "romaji": "gakusei",
+    "english": "student"
+  },
+  {
+    "japanese": "かく",
+    "romaji": "kaku",
+    "english": "to write"
+  },
+  {
+    "japanese": "かさ",
+    "romaji": "kasa",
+    "english": "umbrella"
+  },
+  {
+    "japanese": "かぜ",
+    "romaji": "kaze",
+    "english": "wind/cold"
+  },
+  {
+    "japanese": "かばん",
+    "romaji": "kaban",
+    "english": "bag"
+  },
+  {
+    "japanese": "きょう",
+    "romaji": "kyou",
+    "english": "today"
+  },
+  {
+    "japanese": "きる",
+    "romaji": "kiru",
+    "english": "to wear"
+  },
+  {
+    "japanese": "くつ",
+    "romaji": "kutsu",
+    "english": "shoes"
+  },
+  {
+    "japanese": "くもり",
+    "romaji": "kumori",
+    "english": "cloudy"
+  },
+  {
+    "japanese": "くるま",
+    "romaji": "kuruma",
+    "english": "car"
+  },
+  {
+    "japanese": "けさ",
+    "romaji": "kesa",
+    "english": "this morning"
+  },
+  {
+    "japanese": "こうえん",
+    "romaji": "kouen",
+    "english": "park"
+  },
+  {
+    "japanese": "ここ",
+    "romaji": "koko",
+    "english": "here"
+  },
+  {
+    "japanese": "こと",
+    "romaji": "koto",
+    "english": "thing"
+  },
+  {
+    "japanese": "これ",
+    "romaji": "kore",
+    "english": "this"
+  },
+  {
+    "japanese": "さむい",
+    "romaji": "samui",
+    "english": "cold"
+  },
+  {
+    "japanese": "しごと",
+    "romaji": "shigoto",
+    "english": "work"
+  },
+  {
+    "japanese": "しずか",
+    "romaji": "shizuka",
+    "english": "quiet"
+  },
+  {
+    "japanese": "じてんしゃ",
+    "romaji": "jitensha",
+    "english": "bicycle"
+  },
+  {
+    "japanese": "しぬ",
+    "romaji": "shinu",
+    "english": "to die"
+  },
+  {
+    "japanese": "じゃあ",
+    "romaji": "jaa",
+    "english": "well then"
+  },
+  {
+    "japanese": "すき",
+    "romaji": "suki",
+    "english": "like"
+  },
+  {
+    "japanese": "すこし",
+    "romaji": "sukoshi",
+    "english": "a little"
+  },
+  {
+    "japanese": "すわる",
+    "romaji": "suwaru",
+    "english": "to sit"
+  },
+  {
+    "japanese": "せんせい",
+    "romaji": "sensei",
+    "english": "teacher"
+  },
+  {
+    "japanese": "そして",
+    "romaji": "soshite",
+    "english": "and then"
+  },
+  {
+    "japanese": "それ",
+    "romaji": "sore",
+    "english": "that"
+  },
+  {
+    "japanese": "たべる",
+    "romaji": "taberu",
+    "english": "to eat"
+  },
+  {
+    "japanese": "ちいさい",
+    "romaji": "chiisai",
+    "english": "small"
+  },
+  {
+    "japanese": "ちかい",
+    "romaji": "chikai",
+    "english": "close"
+  },
+  {
+    "japanese": "ちず",
+    "romaji": "chizu",
+    "english": "map"
+  },
+  {
+    "japanese": "つかう",
+    "romaji": "tsukau",
+    "english": "to use"
+  },
+  {
+    "japanese": "つくえ",
+    "romaji": "tsukue",
+    "english": "desk"
+  },
+  {
+    "japanese": "てがみ",
+    "romaji": "tegami",
+    "english": "letter"
+  },
+  {
+    "japanese": "でぐち",
+    "romaji": "deguchi",
+    "english": "exit"
+  },
+  {
+    "japanese": "できる",
+    "romaji": "dekiru",
+    "english": "can do"
+  },
+  {
+    "japanese": "でも",
+    "romaji": "demo",
+    "english": "but"
+  },
+  {
+    "japanese": "でんわ",
+    "romaji": "denwa",
+    "english": "telephone"
+  },
+  {
+    "japanese": "どうぞ",
+    "romaji": "douzo",
+    "english": "please"
+  },
+  {
+    "japanese": "とき",
+    "romaji": "toki",
+    "english": "time"
+  },
+  {
+    "japanese": "ところ",
+    "romaji": "tokoro",
+    "english": "place"
+  },
+  {
+    "japanese": "ともだち",
+    "romaji": "tomodachi",
+    "english": "friend"
+  },
+  {
+    "japanese": "どれ",
+    "romaji": "dore",
+    "english": "which one"
+  },
+  {
+    "japanese": "なか",
+    "romaji": "naka",
+    "english": "inside"
+  },
+  {
+    "japanese": "なぜ",
+    "romaji": "naze",
+    "english": "why"
+  },
+  {
+    "japanese": "なつ",
+    "romaji": "natsu",
+    "english": "summer"
+  },
+  {
+    "japanese": "なに",
+    "romaji": "nani",
+    "english": "what"
+  },
+  {
+    "japanese": "のむ",
+    "romaji": "nomu",
+    "english": "to drink"
+  },
+  {
+    "japanese": "はやい",
+    "romaji": "hayai",
+    "english": "early/fast"
+  },
+  {
+    "japanese": "はる",
+    "romaji": "haru",
+    "english": "spring"
+  },
+  {
+    "japanese": "ひと",
+    "romaji": "hito",
+    "english": "person"
+  },
+  {
+    "japanese": "ひま",
+    "romaji": "hima",
+    "english": "free time"
+  },
+  {
+    "japanese": "へや",
+    "romaji": "heya",
+    "english": "room"
+  },
+  {
+    "japanese": "ほん",
+    "romaji": "hon",
+    "english": "book"
+  },
+  {
+    "japanese": "まいにち",
+    "romaji": "mainichi",
+    "english": "every day"
+  },
+  {
+    "japanese": "まど",
+    "romaji": "mado",
+    "english": "window"
+  },
+  {
+    "japanese": "みず",
+    "romaji": "mizu",
+    "english": "water"
+  },
+  {
+    "japanese": "みせ",
+    "romaji": "mise",
+    "english": "store"
+  },
+  {
+    "japanese": "みる",
+    "romaji": "miru",
+    "english": "to see"
+  },
+  {
+    "japanese": "やすい",
+    "romaji": "yasui",
+    "english": "cheap"
+  },
+  {
+    "japanese": "やすみ",
+    "romaji": "yasumi",
+    "english": "holiday/day off"
+  },
+  {
+    "japanese": "ゆき",
+    "romaji": "yuki",
+    "english": "snow"
+  },
+  {
+    "japanese": "よる",
+    "romaji": "yoru",
+    "english": "night"
+  },
+  {
+    "japanese": "りんご",
+    "romaji": "ringo",
+    "english": "apple"
+  },
+  {
+    "japanese": "わかる",
+    "romaji": "wakaru",
+    "english": "to understand"
+  }
+] 

@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base URL and common settings
 const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: '/api', // Use the proxy path instead of direct backend URL
   headers: {
     'Content-Type': 'application/json',
   },

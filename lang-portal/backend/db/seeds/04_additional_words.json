@@ -1,0 +1,332 @@
+[
+  {
+    "japanese": "一",
+    "romaji": "ichi",
+    "english": "one"
+  },
+  {
+    "japanese": "二",
+    "romaji": "ni",
+    "english": "two"
+  },
+  {
+    "japanese": "三",
+    "romaji": "san",
+    "english": "three"
+  },
+  {
+    "japanese": "四",
+    "romaji": "shi",
+    "english": "four"
+  },
+  {
+    "japanese": "五",
+    "romaji": "go",
+    "english": "five"
+  },
+  {
+    "japanese": "六",
+    "romaji": "roku",
+    "english": "six"
+  },
+  {
+    "japanese": "七",
+    "romaji": "shichi",
+    "english": "seven"
+  },
+  {
+    "japanese": "八",
+    "romaji": "hachi",
+    "english": "eight"
+  },
+  {
+    "japanese": "九",
+    "romaji": "kyuu",
+    "english": "nine"
+  },
+  {
+    "japanese": "十",
+    "romaji": "juu",
+    "english": "ten"
+  },
+  {
+    "japanese": "赤",
+    "romaji": "aka",
+    "english": "red"
+  },
+  {
+    "japanese": "青",
+    "romaji": "ao",
+    "english": "blue"
+  },
+  {
+    "japanese": "黄色",
+    "romaji": "kiiro",
+    "english": "yellow"
+  },
+  {
+    "japanese": "緑",
+    "romaji": "midori",
+    "english": "green"
+  },
+  {
+    "japanese": "黒",
+    "romaji": "kuro",
+    "english": "black"
+  },
+  {
+    "japanese": "白",
+    "romaji": "shiro",
+    "english": "white"
+  },
+  {
+    "japanese": "オレンジ",
+    "romaji": "orenji",
+    "english": "orange"
+  },
+  {
+    "japanese": "ピンク",
+    "romaji": "pinku",
+    "english": "pink"
+  },
+  {
+    "japanese": "紫",
+    "romaji": "murasaki",
+    "english": "purple"
+  },
+  {
+    "japanese": "茶色",
+    "romaji": "chairo",
+    "english": "brown"
+  },
+  {
+    "japanese": "お水",
+    "romaji": "omizu",
+    "english": "water"
+  },
+  {
+    "japanese": "お茶",
+    "romaji": "ocha",
+    "english": "tea"
+  },
+  {
+    "japanese": "コーヒー",
+    "romaji": "koohii",
+    "english": "coffee"
+  },
+  {
+    "japanese": "ご飯",
+    "romaji": "gohan",
+    "english": "rice"
+  },
+  {
+    "japanese": "パン",
+    "romaji": "pan",
+    "english": "bread"
+  },
+  {
+    "japanese": "肉",
+    "romaji": "niku",
+    "english": "meat"
+  },
+  {
+    "japanese": "魚",
+    "romaji": "sakana",
+    "english": "fish"
+  },
+  {
+    "japanese": "野菜",
+    "romaji": "yasai",
+    "english": "vegetables"
+  },
+  {
+    "japanese": "果物",
+    "romaji": "kudamono",
+    "english": "fruit"
+  },
+  {
+    "japanese": "リンゴ",
+    "romaji": "ringo",
+    "english": "apple"
+  },
+  {
+    "japanese": "月曜日",
+    "romaji": "getsuyoubi",
+    "english": "Monday"
+  },
+  {
+    "japanese": "火曜日",
+    "romaji": "kayoubi",
+    "english": "Tuesday"
+  },
+  {
+    "japanese": "水曜日",
+    "romaji": "suiyoubi",
+    "english": "Wednesday"
+  },
+  {
+    "japanese": "木曜日",
+    "romaji": "mokuyoubi",
+    "english": "Thursday"
+  },
+  {
+    "japanese": "金曜日",
+    "romaji": "kinyoubi",
+    "english": "Friday"
+  },
+  {
+    "japanese": "土曜日",
+    "romaji": "doyoubi",
+    "english": "Saturday"
+  },
+  {
+    "japanese": "日曜日",
+    "romaji": "nichiyoubi",
+    "english": "Sunday"
+  },
+  {
+    "japanese": "春",
+    "romaji": "haru",
+    "english": "spring"
+  },
+  {
+    "japanese": "夏",
+    "romaji": "natsu",
+    "english": "summer"
+  },
+  {
+    "japanese": "秋",
+    "romaji": "aki",
+    "english": "autumn"
+  },
+  {
+    "japanese": "冬",
+    "romaji": "fuyu",
+    "english": "winter"
+  },
+  {
+    "japanese": "犬",
+    "romaji": "inu",
+    "english": "dog"
+  },
+  {
+    "japanese": "猫",
+    "romaji": "neko",
+    "english": "cat"
+  },
+  {
+    "japanese": "鳥",
+    "romaji": "tori",
+    "english": "bird"
+  },
+  {
+    "japanese": "魚",
+    "romaji": "sakana",
+    "english": "fish"
+  },
+  {
+    "japanese": "家族",
+    "romaji": "kazoku",
+    "english": "family"
+  },
+  {
+    "japanese": "母",
+    "romaji": "haha",
+    "english": "mother"
+  },
+  {
+    "japanese": "父",
+    "romaji": "chichi",
+    "english": "father"
+  },
+  {
+    "japanese": "姉",
+    "romaji": "ane",
+    "english": "older sister"
+  },
+  {
+    "japanese": "兄",
+    "romaji": "ani",
+    "english": "older brother"
+  },
+  {
+    "japanese": "妹",
+    "romaji": "imouto",
+    "english": "younger sister"
+  },
+  {
+    "japanese": "弟",
+    "romaji": "otouto",
+    "english": "younger brother"
+  },
+  {
+    "japanese": "学校",
+    "romaji": "gakkou",
+    "english": "school"
+  },
+  {
+    "japanese": "先生",
+    "romaji": "sensei",
+    "english": "teacher"
+  },
+  {
+    "japanese": "学生",
+    "romaji": "gakusei",
+    "english": "student"
+  },
+  {
+    "japanese": "友達",
+    "romaji": "tomodachi",
+    "english": "friend"
+  },
+  {
+    "japanese": "本",
+    "romaji": "hon",
+    "english": "book"
+  },
+  {
+    "japanese": "ペン",
+    "romaji": "pen",
+    "english": "pen"
+  },
+  {
+    "japanese": "鉛筆",
+    "romaji": "enpitsu",
+    "english": "pencil"
+  },
+  {
+    "japanese": "時計",
+    "romaji": "tokei",
+    "english": "clock"
+  },
+  {
+    "japanese": "電話",
+    "romaji": "denwa",
+    "english": "telephone"
+  },
+  {
+    "japanese": "車",
+    "romaji": "kuruma",
+    "english": "car"
+  },
+  {
+    "japanese": "自転車",
+    "romaji": "jitensha",
+    "english": "bicycle"
+  },
+  {
+    "japanese": "電車",
+    "romaji": "densha",
+    "english": "train"
+  },
+  {
+    "japanese": "バス",
+    "romaji": "basu",
+    "english": "bus"
+  },
+  {
+    "japanese": "飛行機",
+    "romaji": "hikouki",
+    "english": "airplane"
+  }
+] 
