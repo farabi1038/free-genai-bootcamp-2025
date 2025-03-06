@@ -190,6 +190,38 @@ const GroupService = {
   
   clearCache: () => {
     cache.clearCache();
+  },
+  
+  getWordsByGroupId: async (groupId: string): Promise<Word[]> => {
+    if (USE_MOCK_API) {
+      await delay(300);
+      // Return all mock words for this group
+      return mockWords;
+    }
+    
+    // Use real API
+    try {
+      const response = await apiService.get<{words: Word[], total: number}>(`/groups/${groupId}/words`);
+      return response.words;
+    } catch (error) {
+      console.error(`Error fetching words for group ID ${groupId}:`, error);
+      throw error;
+    }
+  },
+  
+  getStudySessionsByGroupId: async (groupId: string): Promise<StudySession[]> => {
+    if (USE_MOCK_API) {
+      await delay(250);
+      return mockSessions.filter(s => s.group_id === groupId);
+    }
+    
+    try {
+      const response = await apiService.get<{sessions: StudySession[], total: number}>(`/groups/${groupId}/study_sessions`);
+      return response.sessions;
+    } catch (error) {
+      console.error(`Error fetching study sessions for group ID ${groupId}:`, error);
+      throw error;
+    }
   }
 };
 

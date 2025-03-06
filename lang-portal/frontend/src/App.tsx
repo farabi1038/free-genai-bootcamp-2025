@@ -30,7 +30,8 @@ function App() {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/study" element={<ActivitySelectorPage />} />
-              <Route path="/study/:activity/:groupId" element={<StudyPage />} />
+              <Route path="/study/:activityType" element={<StudyPage />} />
+              <Route path="/study/:activityType/:groupId" element={<StudyPage />} />
               <Route path="/words" element={<WordsPage />} />
               <Route path="/words/:id" element={<WordDetails />} />
               <Route path="/groups" element={<GroupsPage />} />

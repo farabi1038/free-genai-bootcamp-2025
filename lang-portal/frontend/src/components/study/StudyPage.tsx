@@ -62,7 +62,7 @@ const BackButton = styled.button`
 `;
 
 const StudyPage: React.FC = () => {
-  const { activityType } = useParams<{ activityType: string }>();
+  const { activityType, groupId: pathGroupId } = useParams<{ activityType: string, groupId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   const [words, setWords] = useState<Word[]>([]);
@@ -70,9 +70,10 @@ const StudyPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   
-  // Get groupId from URL query parameters
+  // Get groupId from URL query parameters or path parameters
   const queryParams = new URLSearchParams(location.search);
-  const groupId = queryParams.get('groupId');
+  const queryGroupId = queryParams.get('groupId');
+  const groupId = pathGroupId || queryGroupId;
   
   useEffect(() => {
     const fetchGroupAndWords = async () => {
@@ -174,24 +175,27 @@ const StudyPage: React.FC = () => {
   };
   
   const renderActivity = () => {
-    // Make sure we have the necessary components
-    const activityProps = { words, groupId: group.id };
+    // Prepare the props for each activity type
+    const flashcardProps = { words, groupId: group.id };
+    const multipleChoiceProps = { words, groupId: group.id };
+    const typingProps = { words, groups: [group] }; // TypingActivity requires groups prop
+    const matchingProps = { words, groups: [group] }; // MatchingActivity requires groups prop
     
     switch (activityType) {
       case 'flashcards':
-        return <FlashcardActivity {...activityProps} />;
+        return <FlashcardActivity {...flashcardProps} />;
       case 'multiple-choice':
-        return <MultipleChoiceActivity {...activityProps} />;
+        return <MultipleChoiceActivity {...multipleChoiceProps} />;
       case 'typing':
         // Check if TypingActivity exists
         if (typeof TypingActivity !== 'undefined') {
-          return <TypingActivity {...activityProps} />;
+          return <TypingActivity {...typingProps} />;
         }
         return <div>Typing Activity is not available.</div>;
       case 'matching':
         // Check if MatchingActivity exists
         if (typeof MatchingActivity !== 'undefined') {
-          return <MatchingActivity {...activityProps} />;
+          return <MatchingActivity {...matchingProps} />;
         }
         return <div>Matching Activity is not available.</div>;
       default:
