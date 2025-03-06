@@ -1,3 +1,15 @@
+# Business Goal:
+The company wants you to explore the effort it would take to run the AI workloads completely on servers that will live in-house. The fractional CTO, suggests that its best practice to run workloads in containers or kubenetes. You as the AI Engineer have been tasked to determine how to learn to work with the building blocks to constructor your own GenAI workloads running on containers.
+
+## Technical Restrictions
+- GenAIComps (GitHub Repo)
+
+- OPEA Comps Project
+
+- Docker Containers
+
+
+
 # Mega Service LLM API
 
 This service demonstrates the OPEA microservices architecture by implementing a simple API for LLM interactions using Ollama. The service is built on the OPEA components framework with a ServiceOrchestrator to manage the workflow.
