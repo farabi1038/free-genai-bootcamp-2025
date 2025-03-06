@@ -1,3 +1,10 @@
+## Business Goal: 
+A chat agent that acts as a teaching assistant to guide students from translating a target English sentence into Japanese. The teaching assistant is not there to provide the direct answer, only guidance.
+
+Will AI-Powered Assistants replace real teachers?
+
+
+
 # Analysis Report of AI Models for Language Transcription
 
 This report presents an in-depth evaluation of four AI models—**Claude (Anthropic)**, **ChatGPT (OpenAI)**, **Perplexity AI**, and **Meta-AI**—in their ability to assist students with transcribing English sentences into Japanese and Spanish. Our analysis covers initial expectations, technical uncertainties, detailed exploration of each model’s behavior, and final outcomes. The report is structured in comprehensive paragraphs, and a comparative summary table is provided for a quick overview.
