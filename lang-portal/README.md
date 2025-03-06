@@ -6,16 +6,22 @@ A comprehensive web application for language learning, featuring vocabulary mana
 
 ### Business Goal: 
 A language learning school wants to build a prototype of learning portal which will act as three things:
-Inventory of possible vocabulary that can be learned
-Act as a  Learning record store (LRS), providing correct and wrong score on practice vocabulary
-A unified launchpad to launch different learning apps
+
+- Inventory of possible vocabulary that can be learned
+
+- Act as a  Learning record store (LRS), providing correct and wrong score on practice vocabulary
+
+- A unified launchpad to launch different learning apps
 
 You have been tasked with creating the backend API of the application.
 
 Technical Restrictions:
-Use SQLite3 as the database
-You can use any language or framework 
-Does not require authentication/authorization, assume there is a single user
+
+- Use SQLite3 as the database
+
+- You can use any language or framework 
+
+- Does not require authentication/authorization, assume there is a single user
 
 
 ## Frontend — Lang Portal
@@ -34,11 +40,16 @@ The frontend application should powered by your backend API.
 
 
 Technical Restrictions:
-The technical stack should be the following:
-Typescript (statically typed javascript)
-Tailwind CSS (css framework)
-Vite.js (frontend tool)
-ShadCN (UI components)
+
+- The technical stack should be the following:
+
+- Typescript (statically typed javascript)
+
+- Tailwind CSS (css framework)
+
+- Vite.js (frontend tool)
+
+- ShadCN (UI components)
 
 
 ## Project Overview
