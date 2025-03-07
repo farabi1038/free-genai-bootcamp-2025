@@ -156,6 +156,91 @@ The OPEA implementation provides a complete framework for enterprise AI integrat
 - **AI Components:** Python 3.8+, Docker (recommended)
 - **Databases:** SQLite (included)
 
+### Docker Installation
+
+Many components in this repository use Docker for containerization. If you don't have Docker installed, follow these steps:
+
+#### Windows
+1. **Download Docker Desktop for Windows**:
+   - Visit [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop)
+   - Click on "Download for Windows"
+
+2. **Install Docker Desktop**:
+   - Run the downloaded installer (Docker Desktop Installer.exe)
+   - Follow the installation wizard instructions
+   - If using WSL, ensure "Use WSL 2 instead of Hyper-V" is selected
+   - Click "Ok" to install
+
+3. **Start Docker Desktop**:
+   - After installation, launch Docker Desktop from the Start menu
+   - Wait for Docker to start (look for the whale icon in your system tray)
+   - Docker must be running before executing any Docker commands
+
+#### macOS
+1. **Download Docker Desktop for Mac**:
+   - Visit [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop)
+   - Click on "Download for Mac"
+
+2. **Install Docker Desktop**:
+   - Open the downloaded .dmg file
+   - Drag the Docker icon to your Applications folder
+   - Open Docker from your Applications folder
+
+#### Linux (Ubuntu/Debian)
+1. **Install Docker Engine**:
+   ```bash
+   # Update package index
+   sudo apt-get update
+
+   # Install dependencies
+   sudo apt-get install apt-transport-https ca-certificates curl software-properties-common
+
+   # Add Docker's official GPG key
+   curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+   # Add Docker repository
+   sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+   # Install Docker
+   sudo apt-get update
+   sudo apt-get install docker-ce docker-ce-cli containerd.io
+
+   # Install Docker Compose
+   sudo apt-get install docker-compose
+   ```
+
+2. **Add Your User to Docker Group** (to run Docker without sudo):
+   ```bash
+   sudo usermod -aG docker $USER
+   ```
+   (You'll need to log out and back in for this to take effect)
+
+3. **Start Docker Service**:
+   ```bash
+   sudo systemctl start docker
+   sudo systemctl enable docker
+   ```
+
+### Verifying Docker Installation
+
+To verify Docker is installed and running correctly:
+
+```bash
+# Check Docker version
+docker --version
+
+# Verify Docker is running
+docker info
+
+# Run a test container
+docker run hello-world
+```
+
+If you see `Error: Cannot connect to the Docker daemon`, make sure Docker is running:
+
+- **Windows/macOS**: Launch Docker Desktop application
+- **Linux**: Run `sudo systemctl start docker`
+
 ### Installation
 
 1. Clone this repository:
@@ -227,6 +312,89 @@ This repository uses a variety of technologies to demonstrate different approach
   - Docker for containerization
   - Environment-based configuration management
   - Comprehensive logging and diagnostics
+
+## 🔎 Troubleshooting
+
+### Docker Issues
+
+#### "Docker is not running or not installed"
+
+If you encounter this error when running scripts:
+
+1. **Verify Docker is installed**:
+   ```bash
+   docker --version
+   ```
+
+2. **Check if Docker daemon is running**:
+   - Windows/macOS: Make sure Docker Desktop is running (look for the whale icon in system tray/menu bar)
+   - Linux: Check service status with `sudo systemctl status docker`
+
+3. **Start Docker if needed**:
+   - Windows/macOS: Open Docker Desktop application
+   - Linux: `sudo systemctl start docker`
+
+4. **Verify connectivity**:
+   ```bash
+   docker info
+   ```
+
+#### Docker Compose Command Not Found
+
+If you see "docker-compose command not found":
+
+1. **For Docker Desktop users**: Make sure Docker Desktop is up to date
+2. **For Linux users**: Install Docker Compose separately:
+   ```bash
+   sudo apt-get install docker-compose
+   ```
+
+#### Permission Denied Errors
+
+If you see "permission denied" when running Docker commands:
+
+1. **Add your user to the docker group** (Linux):
+   ```bash
+   sudo usermod -aG docker $USER
+   ```
+   Then log out and back in for changes to take effect.
+
+2. **Run with sudo** (temporary solution for Linux):
+   ```bash
+   sudo docker info
+   ```
+
+### WSL-Specific Issues
+
+If running in Windows Subsystem for Linux (WSL):
+
+1. **Docker Desktop integration**: Ensure Docker Desktop has WSL integration enabled
+   - Open Docker Desktop settings
+   - Go to "Resources" > "WSL Integration"
+   - Enable integration for your distro
+
+2. **WSL networking issues**: If services in WSL can't be accessed from Windows:
+   - Run services with explicit address binding: `--server.address=0.0.0.0`
+   - Access using the WSL IP address instead of localhost
+
+### Non-Docker Alternatives
+
+If you continue to have Docker issues, some components can be run without Docker:
+
+1. **Vocabulary Importer**:
+   ```bash
+   cd lang-portal/vocab-importer
+   pip install -r requirements.txt
+   streamlit run app.py
+   ```
+
+2. **Language Portal Backend**:
+   ```bash
+   cd lang-portal/backend
+   go run ./cmd/server/main.go
+   ```
+
+Refer to each component's README for detailed non-Docker setup instructions.
 
 ## 📝 License
 
