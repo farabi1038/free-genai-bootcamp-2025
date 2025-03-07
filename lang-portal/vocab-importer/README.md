@@ -1,20 +1,26 @@
 # Language Learning Vocabulary Generator
 
-A Streamlit web application for generating vocabulary words and groups for the Language Learning Portal.
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Python](https://img.shields.io/badge/python-3.8%2B-blue)
+![Ollama](https://img.shields.io/badge/Ollama-compatible-green)
+
+A Streamlit web application for generating vocabulary words and groups for the Language Learning Portal. This internal tool streamlines the process of populating language learning databases with high-quality vocabulary.
 
 ## Features
 
 - Generate vocabulary words using a language model (Ollama)
-- Generate vocabulary groups using a language model
-- Export generated data to JSON files
+- Specialized handling for Japanese language with proper kanji and romaji support
+- Generate vocabulary groups organized by category and difficulty level
+- Export generated data to JSON files for import into the main application
 - Import data from existing JSON files
 - View and manage generated data in a user-friendly interface
+- Fallback mechanism to ensure functionality even without LLM connectivity
 
 ## Prerequisites
 
 - Python 3.8 or higher
 - Ollama installed and running
-- A language model installed in Ollama (default: llama3.2:1b)
+- A language model installed in Ollama (more details in [Model Selection](#model-selection))
 
 ## Installation
 
@@ -41,8 +47,8 @@ ollama serve &
 3. Ensure you have the required model installed:
 
 ```bash
-# Pull the llama model (or another model of your choice)
-ollama pull llama3.2:1b
+# Pull a recommended model (options below)
+ollama pull llama2:13b
 ```
 
 ## Running the Application
@@ -56,21 +62,61 @@ streamlit run app.py
 
 The application will be available at http://localhost:8501
 
+If you're running in WSL and need to access from Windows, use:
+
+```bash
+streamlit run app.py --server.address=0.0.0.0
+```
+
+Then access via http://WSL_IP_ADDRESS:8501 (where WSL_IP_ADDRESS is found using `hostname -I`)
+
 ## Environment Variables
 
-You can configure the application using environment variables:
+You can configure the application using the `.env` file or environment variables:
 
 - `LLM_SERVICE_HOST`: Hostname of the Ollama service (default: localhost)
 - `LLM_SERVICE_PORT`: Port of the Ollama service (default: 11434)
 - `LLM_MODEL_ID`: Model to use for generation (default: llama3.2:1b)
+
+### WSL-Specific Configuration
+
+If running in WSL with Ollama on Windows:
+
+1. Identify the Windows host IP:
+   ```bash
+   ip route | grep default | awk '{print $3}'
+   ```
+
+2. Update `.env` with this IP:
+   ```
+   LLM_SERVICE_HOST=172.17.0.1  # Replace with your Windows host IP
+   LLM_SERVICE_PORT=11434
+   LLM_MODEL_ID=llama2:13b
+   ```
+
+## Model Selection
+
+### Recommended Models for Japanese
+
+For optimal Japanese vocabulary generation, the following models are recommended:
+
+| Model | Size | Japanese Quality | Hardware Requirements |
+|-------|------|-----------------|----------------------|
+| llama3:70b | 70B | Excellent | High (24GB+ VRAM) |
+| mixtral:8x7b | 47B | Very Good | High (16GB+ VRAM) |
+| llama2:13b | 13B | Good | Moderate (8GB+ VRAM) |
+| gemma:7b | 7B | Good | Moderate (6GB+ VRAM) |
+| phi:2b | 2B | Basic | Low (2GB+ VRAM) |
+
+To change the model, edit the `.env` file and update `LLM_MODEL_ID`, then restart the application.
 
 ## Using the Application
 
 ### Generating Vocabulary
 
 1. Navigate to the "Generate Vocabulary" page
-2. Select the target language
-3. Enter a category name
+2. Select the target language (e.g., Japanese)
+3. Enter a category name (e.g., "Food", "Basic Greetings")
 4. Choose the number of words and difficulty level
 5. Click "Generate Vocabulary"
 
@@ -138,6 +184,22 @@ You can configure the application using environment variables:
 }
 ```
 
+## Technical Architecture
+
+The application follows a modular architecture:
+
+```
+vocab-importer/
+├── app.py                   # Main Streamlit application
+├── requirements.txt         # Dependencies
+├── .env                     # Configuration file
+├── README.md                # Documentation
+├── output/                  # Directory for exported files
+└── utils/
+    ├── llm_client.py        # LLM communication layer
+    └── vocab_generator.py   # Vocabulary generation logic
+```
+
 ## Data Storage
 
 Generated and imported data is stored in memory during the session. To persist data between sessions, export it to JSON files.
@@ -146,6 +208,34 @@ Generated files are saved in the `output` directory.
 
 ## Troubleshooting
 
-- If the application fails to connect to Ollama, check that it's running and accessible at the configured host and port.
-- If the LLM fails to generate vocabulary, check that you have the specified model installed in Ollama.
-- For any other issues, check the application logs for details. 
+### Common Issues
+
+#### Ollama Connection Issues
+
+**Problem**: "Failed to connect to Ollama" error
+
+**Solution**: 
+- Verify Ollama is running (`curl http://localhost:11434/api/tags`)
+- If using WSL, verify the correct host IP in `.env`
+- Try different ports or hosts as suggested in the UI
+
+#### Japanese Generation Issues
+
+**Problem**: Poor quality Japanese vocabulary or incorrect romaji
+
+**Solution**:
+- Try a more capable model (llama2:13b or larger)
+- Check if the model has good multilingual capabilities
+- Verify the model is properly loaded in Ollama
+
+#### WSL-Specific Issues
+
+**Problem**: "Cannot access localhost" from browser
+
+**Solution**:
+- Run Streamlit with explicit binding: `streamlit run app.py --server.address=0.0.0.0`
+- Access using the WSL IP address instead of localhost
+
+#### Fallback Mode
+
+If the LLM service is unavailable or no models are found, the application will automatically switch to fallback mode, providing pre-defined vocabulary. This ensures the application remains functional for testing purposes. 
