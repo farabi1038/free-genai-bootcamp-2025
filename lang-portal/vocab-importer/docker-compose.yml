@@ -1,47 +1,40 @@
 # Language Learning Portal - Vocabulary Importer
 # Docker Compose Configuration
 
+version: "3"
+
 services:
   # Ollama LLM Service
   ollama-server:
     image: ollama/ollama
     container_name: ollama-server
     ports:
-      - ${LLM_ENDPOINT_PORT:-11434}:11434
-    environment:
-      LLM_MODEL_ID: ${LLM_MODEL_ID:-llama2:13b}
+      - "11434:11434"
     volumes:
       - ollama-data:/root/.ollama
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     restart: unless-stopped
   
   # Vocabulary Importer Application
   vocab-importer:
-    image: python:3.10-slim
+    image: python:3.9-slim
     container_name: vocab-importer
+    ports:
+      - "8501:8501"
     working_dir: /app
     command: >
       bash -c "
-        pip install --no-cache-dir -r requirements.txt &&
-        streamlit run app.py --server.address=0.0.0.0
+      pip install --no-cache-dir streamlit pandas requests python-dotenv nest-asyncio aiohttp &&
+      streamlit run app.py --server.address=0.0.0.0 --server.port=8501
       "
     volumes:
       - ./:/app
-    ports:
-      - "8501:8501"
     environment:
-      PYTHONUNBUFFERED: "1"
-      LLM_SERVICE_HOST: ollama-server
-      LLM_SERVICE_PORT: 11434
-      LLM_MODEL_ID: ${LLM_MODEL_ID:-llama2:13b}
-      STREAMLIT_SERVER_PORT: 8501
+      - PYTHONUNBUFFERED=1
+      - LLM_SERVICE_HOST=ollama-server
+      - LLM_SERVICE_PORT=11434
+      - LLM_MODEL_ID=${LLM_MODEL_ID:-llama2:13b}
     depends_on:
-      ollama-server:
-        condition: service_healthy
+      - ollama-server
     restart: unless-stopped
 
 # Define volumes for persistent storage
