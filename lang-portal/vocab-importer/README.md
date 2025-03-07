@@ -3,6 +3,7 @@
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![Ollama](https://img.shields.io/badge/Ollama-compatible-green)
+![Docker](https://img.shields.io/badge/Docker-ready-blue)
 
 A Streamlit web application for generating vocabulary words and groups for the Language Learning Portal. This internal tool streamlines the process of populating language learning databases with high-quality vocabulary.
 
@@ -16,13 +17,63 @@ A Streamlit web application for generating vocabulary words and groups for the L
 - View and manage generated data in a user-friendly interface
 - Fallback mechanism to ensure functionality even without LLM connectivity
 
-## Prerequisites
+## Two Ways to Run
+
+This application can be run in two ways:
+
+1. **Docker-based (Recommended)** - Follows the OPEA architecture pattern with containerized services
+2. **Direct Installation** - Traditional installation directly on your host or WSL
+
+## Docker-based Installation (Recommended)
+
+### Prerequisites
+
+- Docker and Docker Compose
+- No need to install Ollama separately - it runs in a container
+
+### Running with Docker
+
+1. Start the application:
+
+```bash
+# Linux/macOS
+./run-docker.sh
+
+# Windows PowerShell
+.\run-docker.ps1
+```
+
+2. Access the application at [http://localhost:8501](http://localhost:8501)
+
+3. To stop the application:
+
+```bash
+docker-compose down
+```
+
+### Configuration (Docker)
+
+You can configure the application before starting it:
+
+```bash
+# Specify a different LLM model
+export LLM_MODEL_ID=llama2:13b
+./run-docker.sh
+
+# Windows PowerShell
+$env:LLM_MODEL_ID="llama2:13b"
+.\run-docker.ps1
+```
+
+## Direct Installation
+
+### Prerequisites
 
 - Python 3.8 or higher
 - Ollama installed and running
 - A language model installed in Ollama (more details in [Model Selection](#model-selection))
 
-## Installation
+### Installation
 
 1. Install the required dependencies:
 
@@ -51,7 +102,7 @@ ollama serve &
 ollama pull llama2:13b
 ```
 
-## Running the Application
+### Running the Application
 
 Start the Streamlit application:
 
@@ -70,7 +121,7 @@ streamlit run app.py --server.address=0.0.0.0
 
 Then access via http://WSL_IP_ADDRESS:8501 (where WSL_IP_ADDRESS is found using `hostname -I`)
 
-## Environment Variables
+### Environment Variables
 
 You can configure the application using the `.env` file or environment variables:
 
@@ -186,19 +237,29 @@ To change the model, edit the `.env` file and update `LLM_MODEL_ID`, then restar
 
 ## Technical Architecture
 
-The application follows a modular architecture:
+The application follows the OPEA (Open and Pluggable Enterprise AI) architecture pattern:
 
 ```
 vocab-importer/
 ├── app.py                   # Main Streamlit application
 ├── requirements.txt         # Dependencies
 ├── .env                     # Configuration file
+├── docker-compose.yml       # Docker configuration
 ├── README.md                # Documentation
 ├── output/                  # Directory for exported files
 └── utils/
-    ├── llm_client.py        # LLM communication layer
+    ├── llm_client.py        # LLM communication layer with OPEA components
     └── vocab_generator.py   # Vocabulary generation logic
 ```
+
+## OPEA Architecture
+
+This application is built following the OPEA (Open and Pluggable Enterprise AI) architecture:
+
+- **Service Orchestration**: Manages the flow of requests between services
+- **Microservices**: Modular services with well-defined responsibilities
+- **Protocol Classes**: Standardized message formats between services
+- **Docker Integration**: Containerized deployment for consistent environments
 
 ## Data Storage
 
@@ -216,6 +277,7 @@ Generated files are saved in the `output` directory.
 
 **Solution**: 
 - Verify Ollama is running (`curl http://localhost:11434/api/tags`)
+- If using Docker, make sure Docker is running and containers are up
 - If using WSL, verify the correct host IP in `.env`
 - Try different ports or hosts as suggested in the UI
 
@@ -235,6 +297,16 @@ Generated files are saved in the `output` directory.
 **Solution**:
 - Run Streamlit with explicit binding: `streamlit run app.py --server.address=0.0.0.0`
 - Access using the WSL IP address instead of localhost
+- Consider using the Docker approach which avoids WSL networking issues
+
+#### Docker Issues
+
+**Problem**: "Error starting containers"
+
+**Solution**:
+- Make sure Docker and Docker Compose are installed and running
+- Check if port 8501 or 11434 are already in use
+- Run `docker-compose logs` to see detailed error messages
 
 #### Fallback Mode
 

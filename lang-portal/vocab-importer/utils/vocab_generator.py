@@ -1,21 +1,109 @@
 import json
 import logging
+import asyncio
 from typing import Dict, List, Any, Optional
-from .llm_client import LLMClient
+from .llm_client import LLMClient, LLMService, ServiceOrchestrator
 
 logger = logging.getLogger(__name__)
 
 class VocabGenerator:
     """Generator for vocabulary words and groups using LLM."""
     
-    def __init__(self, llm_client: LLMClient):
+    def __init__(self, llm_client: LLMClient = None, llm_service: LLMService = None):
         """Initialize the vocabulary generator.
         
         Args:
-            llm_client: The LLM client to use for generating vocabulary
+            llm_client: The legacy synchronous LLM client (for backward compatibility)
+            llm_service: The OPEA LLM service (preferred)
         """
         self.llm_client = llm_client
-        logger.info("Vocabulary generator initialized")
+        self.llm_service = llm_service
+        self.orchestrator = ServiceOrchestrator() if llm_service else None
+        
+        # Set up service orchestration if using OPEA architecture
+        if self.llm_service:
+            self.orchestrator.add(self.llm_service)
+            logger.info("Vocabulary generator initialized with OPEA architecture")
+        else:
+            logger.info("Vocabulary generator initialized with legacy client")
+    
+    async def _generate_with_opea(self, prompt: str, system_prompt: Optional[str] = None, max_tokens: int = 2048) -> str:
+        """Generate text using OPEA architecture.
+        
+        Args:
+            prompt: The prompt to send to the LLM
+            system_prompt: Optional system prompt
+            max_tokens: Maximum tokens to generate
+            
+        Returns:
+            Generated text response
+        """
+        if not self.llm_service:
+            return "Error: No OPEA service configured"
+        
+        request_data = {
+            "prompt": prompt,
+            "system_prompt": system_prompt,
+            "max_tokens": max_tokens
+        }
+        
+        try:
+            result = await self.orchestrator.process(request_data, self.llm_service.name)
+            return result
+        except Exception as e:
+            logger.error(f"OPEA generation failed: {str(e)}")
+            return f"Error: {str(e)}"
+    
+    def _generate_with_legacy(self, prompt: str, system_prompt: Optional[str] = None, max_tokens: int = 2048) -> str:
+        """Generate text using legacy synchronous client.
+        
+        Args:
+            prompt: The prompt to send to the LLM
+            system_prompt: Optional system prompt
+            max_tokens: Maximum tokens to generate
+            
+        Returns:
+            Generated text response
+        """
+        if not self.llm_client:
+            return "Error: No legacy client configured"
+        
+        return self.llm_client.generate_text(prompt, max_tokens, system_prompt)
+    
+    def generate_text(self, prompt: str, system_prompt: Optional[str] = None, max_tokens: int = 2048) -> str:
+        """Generate text using available LLM service.
+        
+        This function handles both synchronous and asynchronous (OPEA) generation.
+        
+        Args:
+            prompt: The prompt to send to the LLM
+            system_prompt: Optional system prompt
+            max_tokens: Maximum tokens to generate
+            
+        Returns:
+            Generated text response
+        """
+        # Prefer OPEA service if available
+        if self.llm_service:
+            # Need to run the async function in a new event loop
+            loop = asyncio.new_event_loop()
+            try:
+                asyncio.set_event_loop(loop)
+                result = loop.run_until_complete(
+                    self._generate_with_opea(prompt, system_prompt, max_tokens)
+                )
+                return result
+            finally:
+                loop.close()
+        
+        # Fall back to legacy client
+        elif self.llm_client:
+            return self._generate_with_legacy(prompt, system_prompt, max_tokens)
+        
+        # No LLM service configured
+        else:
+            logger.error("No LLM service or client configured")
+            return "Error: No LLM service configured"
     
     def generate_vocab_words(
         self, 
@@ -73,7 +161,7 @@ class VocabGenerator:
         
         try:
             # Generate response from LLM
-            response = self.llm_client.generate_text(prompt, max_tokens=2048, system_prompt=system_prompt)
+            response = self.generate_text(prompt, system_prompt=system_prompt, max_tokens=2048)
             
             # Check if we got an error response
             if response.startswith("Error:"):
@@ -177,7 +265,7 @@ class VocabGenerator:
         
         try:
             # Generate response from LLM with increased tokens for better quality
-            response = self.llm_client.generate_text(prompt, max_tokens=3072, system_prompt=system_prompt)
+            response = self.generate_text(prompt, system_prompt=system_prompt, max_tokens=3072)
             
             # Check if we got an error response
             if response.startswith("Error:"):
@@ -359,7 +447,7 @@ class VocabGenerator:
         
         try:
             # Generate response from LLM
-            response = self.llm_client.generate_text(prompt, max_tokens=1024, system_prompt=system_prompt)
+            response = self.generate_text(prompt, system_prompt=system_prompt, max_tokens=1024)
             
             # Check if we got an error response
             if response.startswith("Error:"):

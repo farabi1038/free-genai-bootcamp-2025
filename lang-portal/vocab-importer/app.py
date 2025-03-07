@@ -7,10 +7,20 @@ import socket
 import requests
 import subprocess
 import time
+import asyncio
+import nest_asyncio
 from datetime import datetime
 from dotenv import load_dotenv
-from utils.llm_client import LLMClient
+from utils.llm_client import (
+    LLMClient, 
+    LLMService, 
+    ServiceOrchestrator, 
+    get_llm_service
+)
 from utils.vocab_generator import VocabGenerator
+
+# Apply nest_asyncio to allow nested event loops (needed for Streamlit + asyncio)
+nest_asyncio.apply()
 
 # Load environment variables from .env file
 load_dotenv()
@@ -25,6 +35,10 @@ logger = logging.getLogger(__name__)
 # Create output directory if it doesn't exist
 os.makedirs("output", exist_ok=True)
 
+# Detect if running in Docker
+IN_DOCKER = os.path.exists('/.dockerenv') or os.environ.get('DOCKER_CONTAINER', False)
+logger.info(f"Running in Docker: {IN_DOCKER}")
+
 # List of fallback models to try in order of preference
 FALLBACK_MODELS = [
     "llama3.2:1b",
@@ -37,6 +51,67 @@ FALLBACK_MODELS = [
     "mixtral",
     "phi"
 ]
+
+# Helper function to get all possible host IPs to try
+def get_potential_host_ips():
+    """Get all potential host IPs where Ollama might be running."""
+    potential_ips = []
+    
+    # When running in Docker, we should connect to the service name
+    if IN_DOCKER:
+        # Docker-compose sets up DNS resolution by service name
+        ollama_host = os.environ.get("LLM_SERVICE_HOST", "ollama-server")
+        logger.info(f"In Docker mode, connecting to service: {ollama_host}")
+        return [ollama_host]
+    
+    # Standard list for non-Docker environments
+    potential_ips = ["localhost", "127.0.0.1"]
+    
+    # Add configured IP first if it exists
+    config_ip = os.environ.get("LLM_SERVICE_HOST", "")
+    if config_ip and config_ip not in potential_ips:
+        potential_ips.insert(0, config_ip)  # Try the configured one first
+    
+    # Try to get the host.docker.internal which works in some WSL2 setups
+    try:
+        host_ip = socket.gethostbyname("host.docker.internal")
+        potential_ips.append(host_ip)
+    except:
+        pass
+    
+    # Try to get the WSL2 gateway IP from /etc/resolv.conf
+    try:
+        with open('/etc/resolv.conf', 'r') as f:
+            for line in f:
+                if 'nameserver' in line and '8.8.8.8' not in line and '8.8.4.4' not in line:
+                    ip = line.split()[1]
+                    potential_ips.append(ip)
+    except:
+        pass
+    
+    # Try common WSL2 gateway IPs
+    potential_ips.extend([
+        "172.17.0.1",  # Common Docker bridge
+        "172.18.0.1", 
+        "172.19.0.1", 
+        "172.20.0.1",
+        "172.21.0.1",
+        "172.22.0.1",
+        "172.23.0.1",
+        "172.24.0.1",
+        "172.25.0.1",
+        "172.26.0.1",
+        "172.27.0.1",
+        "172.28.0.1",
+        "172.29.0.1",
+        "172.30.0.1",
+        "172.31.0.1",
+        "192.168.0.1",
+        "192.168.1.1",
+    ])
+    
+    logger.debug(f"Potential host IPs: {potential_ips}")
+    return potential_ips
 
 # Check for available models on a connected Ollama instance
 def get_available_models(host, port):
@@ -90,56 +165,6 @@ def pull_model(host, port, model_name):
         logger.error(f"Error pulling model: {str(e)}")
         return False
 
-# Helper function to get all possible host IPs to try
-def get_potential_host_ips():
-    """Get all potential host IPs where Ollama might be running."""
-    potential_ips = ["localhost", "127.0.0.1"]
-    
-    # Try to get the host.docker.internal which works in some WSL2 setups
-    try:
-        host_ip = socket.gethostbyname("host.docker.internal")
-        potential_ips.append(host_ip)
-    except:
-        pass
-    
-    # Try to get the WSL2 gateway IP from /etc/resolv.conf
-    try:
-        with open('/etc/resolv.conf', 'r') as f:
-            for line in f:
-                if 'nameserver' in line and '8.8.8.8' not in line and '8.8.4.4' not in line:
-                    ip = line.split()[1]
-                    potential_ips.append(ip)
-    except:
-        pass
-    
-    # Add configured IP first if it exists
-    config_ip = os.environ.get("LLM_SERVICE_HOST", "")
-    if config_ip and config_ip not in potential_ips:
-        potential_ips.insert(0, config_ip)  # Try the configured one first
-    
-    # Try common WSL2 gateway IPs
-    potential_ips.extend([
-        "172.17.0.1",  # Common Docker bridge
-        "172.18.0.1", 
-        "172.19.0.1",
-        "172.20.0.1",
-        "172.21.0.1",
-        "172.22.0.1",
-        "172.23.0.1",
-        "172.24.0.1",
-        "172.25.0.1",
-        "172.26.0.1",
-        "172.27.0.1",
-        "172.28.0.1",
-        "172.29.0.1",
-        "172.30.0.1",
-        "172.31.0.1",
-        "192.168.0.1",
-        "192.168.1.1",
-    ])
-    
-    return potential_ips
-
 # Try to start Ollama if it's installed but not running
 def ensure_ollama_running():
     """Try to ensure Ollama is running if installed."""
@@ -157,25 +182,105 @@ def ensure_ollama_running():
     except Exception as e:
         logger.warning(f"Failed to start Ollama: {str(e)}")
 
-# Initialize LLM client and vocab generator
-@st.cache_resource
-def initialize_generator():
-    # Ensure Ollama is running if possible
-    ensure_ollama_running()
-    
-    # Get configuration from environment or use defaults
+# Initialize LLM service with OPEA architecture
+async def init_llm_service():
+    """Initialize LLM service using OPEA architecture."""
+    # Get configuration from environment
     llm_port = os.environ.get("LLM_SERVICE_PORT", "11434")
     llm_model = os.environ.get("LLM_MODEL_ID", "llama3.2:1b")
     
-    # Try all potential host IPs
+    # Try potential hosts
     potential_ips = get_potential_host_ips()
-    logger.info(f"Will try the following IPs to connect to Ollama: {potential_ips}")
     
+    # Information to return
     working_host = None
     available_models = []
-    model_to_use = llm_model
+    active_model = llm_model
+    llm_service = None
     
-    # Try each IP in order
+    # Try OPEA initialization with each potential host
+    for host_ip in potential_ips:
+        try:
+            # Create service
+            service = await get_llm_service(host=host_ip, port=int(llm_port), model=llm_model)
+            
+            # Check health
+            if await service.health_check():
+                logger.info(f"Successfully connected to Ollama at {host_ip}:{llm_port}")
+                working_host = host_ip
+                
+                # Check available models
+                available_models = get_available_models(host_ip, llm_port)
+                
+                # Try to find a working model
+                if llm_model not in available_models:
+                    # Try pulling the model
+                    pull_success = pull_model(host_ip, llm_port, llm_model)
+                    
+                    # If pull initiated, check if it's available now
+                    if pull_success:
+                        time.sleep(3)  # Brief wait to see if it's immediately available
+                        available_models = get_available_models(host_ip, llm_port)
+                    
+                    # If still not available, try fallbacks
+                    if llm_model not in available_models:
+                        for fallback in FALLBACK_MODELS:
+                            if fallback in available_models:
+                                logger.info(f"Using fallback model: {fallback}")
+                                active_model = fallback
+                                service = await get_llm_service(host=host_ip, port=int(llm_port), model=active_model)
+                                break
+                
+                # Save working configuration
+                with open(".env", "w") as f:
+                    f.write(f"LLM_SERVICE_HOST={host_ip}\n")
+                    f.write(f"LLM_SERVICE_PORT={llm_port}\n")
+                    f.write(f"LLM_MODEL_ID={active_model}\n")
+                
+                # Setup complete, return service
+                llm_service = service
+                break
+        except Exception as e:
+            logger.warning(f"Failed to initialize LLM service with host {host_ip}: {str(e)}")
+    
+    return llm_service, working_host, available_models, active_model
+
+# Initialize LLM client and vocab generator with OPEA architecture
+@st.cache_resource
+def initialize_generator():
+    """Initialize the vocabulary generator with OPEA or fallback to legacy client."""
+    # Ensure Ollama is running if possible
+    ensure_ollama_running()
+    
+    # Get configuration
+    llm_port = os.environ.get("LLM_SERVICE_PORT", "11434")
+    llm_model = os.environ.get("LLM_MODEL_ID", "llama3.2:1b")
+    
+    try:
+        # Run async initialization in an event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        llm_service, working_host, available_models, active_model = loop.run_until_complete(
+            init_llm_service()
+        )
+        
+        # If OPEA service initialization successful
+        if llm_service:
+            logger.info(f"Using OPEA architecture with model {active_model}")
+            generator = VocabGenerator(llm_service=llm_service)
+            return generator, working_host, available_models, active_model, True  # True for OPEA
+    except Exception as e:
+        logger.error(f"Failed to initialize OPEA services: {str(e)}")
+    
+    # Fallback to legacy client
+    logger.warning("Falling back to legacy LLM client")
+    
+    # Legacy client initialization with potential hosts
+    potential_ips = get_potential_host_ips()
+    working_host = None
+    available_models = []
+    active_model = llm_model
+    
     for host_ip in potential_ips:
         base_url = f"http://{host_ip}:{llm_port}"
         logger.info(f"Trying to connect to Ollama at: {base_url}")
@@ -188,47 +293,28 @@ def initialize_generator():
             with open(".env", "w") as f:
                 f.write(f"LLM_SERVICE_HOST={host_ip}\n")
                 f.write(f"LLM_SERVICE_PORT={llm_port}\n")
-                f.write(f"LLM_MODEL_ID={model_to_use}\n")
+                f.write(f"LLM_MODEL_ID={llm_model}\n")
             
             working_host = host_ip
-            
-            # Check what models are available
             available_models = get_available_models(host_ip, llm_port)
             
-            # Check if our desired model is available, if not try to pull it
-            if llm_model not in available_models:
-                logger.warning(f"Model {llm_model} not found. Attempting to pull it...")
-                pull_success = pull_model(host_ip, llm_port, llm_model)
-                if pull_success:
-                    logger.info(f"Pull initiated for {llm_model}, waiting to see if it becomes available...")
-                    # Wait a moment to see if the model becomes available
-                    time.sleep(5)
-                    available_models = get_available_models(host_ip, llm_port)
-            
-            # If our desired model is still not available, try to find a fallback model
-            if llm_model not in available_models:
-                logger.warning(f"Desired model {llm_model} not available. Checking fallbacks...")
+            # Check model availability and fallbacks
+            if llm_model not in available_models and available_models:
                 for fallback in FALLBACK_MODELS:
                     if fallback in available_models:
                         logger.info(f"Using fallback model: {fallback}")
-                        model_to_use = fallback
-                        # Update client with fallback model
-                        client = LLMClient(base_url=base_url, model=model_to_use)
-                        # Update .env with fallback model
-                        with open(".env", "w") as f:
-                            f.write(f"LLM_SERVICE_HOST={host_ip}\n")
-                            f.write(f"LLM_SERVICE_PORT={llm_port}\n")
-                            f.write(f"LLM_MODEL_ID={model_to_use}\n")
+                        active_model = fallback
+                        client = LLMClient(base_url=base_url, model=active_model)
                         break
             
-            return VocabGenerator(client), working_host, available_models, model_to_use
+            generator = VocabGenerator(llm_client=client)
+            return generator, working_host, available_models, active_model, False  # False for legacy
     
-    # If we got here, no connection was successful
+    # If all else fails, create a generator with empty client for fallback mode
     logger.error("Failed to connect to Ollama on any available host")
-    
-    # Return default values
     default_client = LLMClient(base_url=f"http://localhost:{llm_port}", model=llm_model)
-    return VocabGenerator(default_client), None, [], llm_model
+    generator = VocabGenerator(llm_client=default_client)
+    return generator, None, [], llm_model, False
 
 # Page configuration
 st.set_page_config(
@@ -245,11 +331,23 @@ You can generate vocabulary words, vocabulary groups, export to JSON, and import
 """)
 
 # Handle and display connection status in the UI
-def check_ollama_connection(generator, host, available_models, active_model):
-    ollama_status = generator.llm_client.check_health()
-    if ollama_status:
+def check_ollama_connection(generator, host, available_models, active_model, using_opea):
+    # First check if we have a working client
+    if using_opea:
+        connection_ok = generator.llm_service is not None
+    else:
+        connection_ok = generator.llm_client.check_health() if generator.llm_client else False
+    
+    if connection_ok:
         st.success("✅ Connected to Ollama successfully!")
-        st.write(f"**Using server:** {generator.llm_client.base_url}")
+        
+        # Show architecture info
+        arch_label = "OPEA Architecture" if using_opea else "Legacy Client"
+        st.write(f"**Using:** {arch_label}")
+        
+        # Show connection info
+        if host:
+            st.write(f"**Server:** {host}:{os.environ.get('LLM_SERVICE_PORT', '11434')}")
         st.write(f"**Active model:** {active_model}")
         
         # Show available models
@@ -259,7 +357,7 @@ def check_ollama_connection(generator, host, available_models, active_model):
         
         # Show model pull interface if desired model not available
         desired_model = os.environ.get("LLM_MODEL_ID", "llama3.2:1b")
-        if desired_model not in available_models:
+        if desired_model not in available_models and host:
             st.warning(f"Your desired model **{desired_model}** is not available.")
             if st.button("Pull Model"):
                 if pull_model(host, 11434, desired_model):
@@ -284,7 +382,7 @@ def check_ollama_connection(generator, host, available_models, active_model):
                  # In lang-portal/vocab-importer/.env
                  LLM_SERVICE_HOST=172.17.0.1  # This seems to be working for you
                  LLM_SERVICE_PORT=11434
-                 LLM_MODEL_ID=llama3.2:1b
+                 LLM_MODEL_ID=llama2:13b
                  ```
                  
                - Install Ollama directly in WSL:
@@ -298,7 +396,7 @@ def check_ollama_connection(generator, host, available_models, active_model):
             
             3. **Pull required models:**
                ```
-               ollama pull llama3.2:1b
+               ollama pull llama2:13b
                ```
                
                If that specific model doesn't work, try a different one:
@@ -313,13 +411,13 @@ def check_ollama_connection(generator, host, available_models, active_model):
             
             After making changes, refresh this page to try connecting again.
             """)
-    return ollama_status
+    return connection_ok
 
 # Initialize the generator
 try:
     generator_info = initialize_generator()
-    generator, working_host, available_models, active_model = generator_info
-    connection_ok = check_ollama_connection(generator, working_host, available_models, active_model)
+    generator, working_host, available_models, active_model, using_opea = generator_info
+    connection_ok = check_ollama_connection(generator, working_host, available_models, active_model, using_opea)
 except Exception as e:
     st.error(f"Error initializing generator: {str(e)}")
     connection_ok = False
@@ -327,6 +425,14 @@ except Exception as e:
     working_host = None
     available_models = []
     active_model = None
+    using_opea = False
+
+# Add architecture indicator in the sidebar
+st.sidebar.title("Architecture")
+if using_opea:
+    st.sidebar.success("Using OPEA Architecture")
+else:
+    st.sidebar.info("Using Legacy Client")
 
 # Sidebar for navigation
 st.sidebar.title("Navigation")
@@ -418,39 +524,43 @@ if page == "Generate Vocabulary":
 elif page == "Generate Groups":
     st.header("Generate Vocabulary Groups")
     
-    with st.form("groups_form"):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            language = st.selectbox("Language", ["Japanese", "French", "Spanish", "German", "Chinese", "Korean"])
-        
-        with col2:
-            count = st.slider("Number of groups", 3, 20, 5)
-        
-        generate_button = st.form_submit_button("Generate Groups")
-    
-    if generate_button:
-        with st.spinner("Generating vocabulary groups..."):
-            group_list = generator.generate_vocab_groups(
-                count=count,
-                language=language
-            )
+    if connection_ok:
+        with st.form("groups_form"):
+            col1, col2 = st.columns(2)
             
-            if group_list:
-                st.session_state.generated_groups = group_list
-                st.success(f"Generated {len(group_list)} vocabulary groups!")
-            else:
-                st.error("Failed to generate vocabulary groups. Please check the logs.")
-    
-    # Display generated groups
-    if st.session_state.generated_groups:
-        st.subheader("Generated Groups")
-        display_groups_table(st.session_state.generated_groups)
+            with col1:
+                language = st.selectbox("Language", ["Japanese", "French", "Spanish", "German", "Chinese", "Korean"])
+            
+            with col2:
+                count = st.slider("Number of groups", 3, 20, 5)
+            
+            generate_button = st.form_submit_button("Generate Groups")
         
-        # Allow clearing the generated groups
-        if st.button("Clear Generated Groups"):
-            st.session_state.generated_groups = []
-            st.experimental_rerun()
+        if generate_button:
+            with st.spinner("Generating vocabulary groups..."):
+                try:
+                    group_list = generator.generate_vocab_groups(
+                        count=count,
+                        language=language
+                    )
+                    
+                    if group_list:
+                        st.session_state.generated_groups = group_list
+                        st.success(f"Generated {len(group_list)} vocabulary groups!")
+                    else:
+                        st.error("Failed to generate vocabulary groups. Please check the logs.")
+                except Exception as e:
+                    st.error(f"Error generating groups: {str(e)}")
+        
+        # Display generated groups
+        if st.session_state.generated_groups:
+            st.subheader("Generated Groups")
+            display_groups_table(st.session_state.generated_groups)
+            
+            # Allow clearing the generated groups
+            if st.button("Clear Generated Groups"):
+                st.session_state.generated_groups = []
+                st.experimental_rerun()
 
 # Page: Export Data
 elif page == "Export Data":
@@ -628,4 +738,4 @@ elif page == "Import Data":
 
 # Footer
 st.markdown("---")
-st.markdown("📚 Language Learning Vocabulary Generator - Internal Tool") 
+st.markdown("📚 Language Learning Vocabulary Generator - Internal Tool (OPEA-powered)") 
