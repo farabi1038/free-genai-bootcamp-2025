@@ -1,0 +1,56 @@
+# Language Learning Portal - Vocabulary Importer
+# Docker Compose Configuration
+
+services:
+  # Ollama LLM Service
+  ollama-server:
+    image: ollama/ollama
+    container_name: ollama-server
+    ports:
+      - ${LLM_ENDPOINT_PORT:-11434}:11434
+    environment:
+      LLM_MODEL_ID: ${LLM_MODEL_ID:-llama2:13b}
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+  
+  # Vocabulary Importer Application
+  vocab-importer:
+    image: python:3.10-slim
+    container_name: vocab-importer
+    working_dir: /app
+    command: >
+      bash -c "
+        pip install --no-cache-dir -r requirements.txt &&
+        streamlit run app.py --server.address=0.0.0.0
+      "
+    volumes:
+      - ./:/app
+    ports:
+      - "8501:8501"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      LLM_SERVICE_HOST: ollama-server
+      LLM_SERVICE_PORT: 11434
+      LLM_MODEL_ID: ${LLM_MODEL_ID:-llama2:13b}
+      STREAMLIT_SERVER_PORT: 8501
+    depends_on:
+      ollama-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+# Define volumes for persistent storage
+volumes:
+  ollama-data:
+    # This volume stores the Ollama models
+    # This ensures models are preserved across container restarts
+
+# Define default network
+networks:
+  default:
+    driver: bridge 
