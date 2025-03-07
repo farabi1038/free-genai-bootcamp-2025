@@ -245,7 +245,7 @@ If you see `Error: Cannot connect to the Docker daemon`, make sure Docker is run
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/your-org/free-genai-bootcamp-2025.git
+   git clone https://github.com/farabi1038/free-genai-bootcamp-2025.git
    cd free-genai-bootcamp-2025
    ```
 
