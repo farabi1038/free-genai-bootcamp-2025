@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"os"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/free-genai-bootcamp-2025/lang-portal/internal/handlers"
@@ -35,6 +36,17 @@ func setupRoutes(router *gin.Engine, db *sql.DB) {
 		sessionRepo,
 	)
 	
+	// Initialize word generator service
+	ollamaURL := os.Getenv("OLLAMA_URL")
+	if ollamaURL == "" {
+		ollamaURL = "http://localhost:11434" // Default Ollama URL
+	}
+	modelID := os.Getenv("LLM_MODEL_ID")
+	if modelID == "" {
+		modelID = "llama3.2:1b" // Default model
+	}
+	wordGenerator := service.NewWordGenerator(ollamaURL, modelID)
+	
 	// Create the main API group
 	apiGroup := router.Group("/api")
 	
@@ -46,6 +58,9 @@ func setupRoutes(router *gin.Engine, db *sql.DB) {
 	handlers.RegisterStudySessionsRoutes(apiGroup.Group("/study-sessions"))
 	handlers.RegisterStudyTrackingRoutes(apiGroup.Group("/study-tracking"))
 	handlers.RegisterSettingsRoutes(apiGroup.Group("/settings"))
+	
+	// Register word generator routes
+	handlers.RegisterWordGeneratorRoutes(apiGroup.Group("/word-generator"), wordGenerator)
 	
 	log.Println("API routes registered successfully")
 }

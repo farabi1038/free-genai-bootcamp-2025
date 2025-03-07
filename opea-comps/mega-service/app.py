@@ -3,19 +3,40 @@ import os
 import logging
 import asyncio
 from typing import Dict, Any, Optional
+from contextlib import contextmanager
 
 import aiohttp
 from fastapi import HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-# OpenTelemetry imports
-from opentelemetry import trace
-from opentelemetry.exporter.jaeger.thrift import JaegerExporter
-from opentelemetry.sdk.resources import SERVICE_NAME, Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.instrumentation.aiohttp import AioHttpClientInstrumentor
+# Set up enhanced logging to replace tracing
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Create a dummy tracing system using logging
+@contextmanager
+def log_span(name):
+    logger.debug(f"Starting span: {name}")
+    try:
+        yield None
+    finally:
+        logger.debug(f"Ending span: {name}")
+
+class DummyTracer:
+    def start_as_current_span(self, name):
+        return log_span(name)
+
+# Create a dummy trace module for compatibility
+class DummyTrace:
+    def get_tracer(self, name):
+        return DummyTracer()
+
+# Create globals
+trace = DummyTrace()
+HAS_TELEMETRY = False
 
 from comps.cores.proto.api_protocol import (
     ChatCompletionRequest,
@@ -28,10 +49,6 @@ from comps.cores.mega.constants import ServiceType, ServiceRoleType
 from comps.cores.proto.docarray import LLMParams
 from comps import MicroService, ServiceOrchestrator
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
 # Environment variables with defaults
 LLM_SERVICE_HOST_IP = os.getenv("LLM_SERVICE_HOST_IP", "0.0.0.0")
 LLM_SERVICE_PORT = int(os.getenv("LLM_SERVICE_PORT", "9000"))
@@ -39,38 +56,13 @@ DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "llama3.2:1b")
 DEFAULT_MAX_TOKENS = int(os.getenv("DEFAULT_MAX_TOKENS", "1024"))
 CONNECTION_RETRY_COUNT = int(os.getenv("CONNECTION_RETRY_COUNT", "3"))
 CONNECTION_RETRY_DELAY = int(os.getenv("CONNECTION_RETRY_DELAY", "5"))
-JAEGER_HOST = os.getenv("JAEGER_HOST", "jaeger")
-JAEGER_PORT = int(os.getenv("JAEGER_PORT", "6831"))
 SERVICE_NAME_VALUE = os.getenv("SERVICE_NAME", "llm-mega-service")
 
-
+# Replace tracing setup with logging
 def setup_tracing():
-    """Configure OpenTelemetry tracing with Jaeger exporter."""
-    # Create a resource with service name
-    resource = Resource(attributes={
-        SERVICE_NAME: SERVICE_NAME_VALUE
-    })
-    
-    # Create a tracer provider
-    tracer_provider = TracerProvider(resource=resource)
-    
-    # Create a Jaeger exporter
-    jaeger_exporter = JaegerExporter(
-        agent_host_name=JAEGER_HOST,
-        agent_port=JAEGER_PORT,
-    )
-    
-    # Add the exporter to the tracer provider
-    tracer_provider.add_span_processor(BatchSpanProcessor(jaeger_exporter))
-    
-    # Set the tracer provider
-    trace.set_tracer_provider(tracer_provider)
-    
-    # Instrument aiohttp client
-    AioHttpClientInstrumentor().instrument()
-    
-    return tracer_provider
-
+    """Set up enhanced logging instead of tracing."""
+    logger.info("Using enhanced logging instead of OpenTelemetry tracing")
+    return None
 
 class LLMService:
     """Service orchestrating LLM requests through a DAG workflow."""
@@ -83,28 +75,32 @@ class LLMService:
         self.orchestrator = ServiceOrchestrator()
         self.services = {}  # Store reference to services for easier access
         os.environ["LOGFLAG"] = "true"  # Enable detailed logging
-        self.tracer = trace.get_tracer(__name__)
+        self.tracer = DummyTracer()
         logger.info(f"Initializing service on {host}:{port}")
     
     async def verify_connections(self) -> bool:
-        """Verify connections to all dependent services.
-        
-        Returns:
-            bool: True if all connections are successful, False otherwise
-        """
+        """Verify connections to external services."""
         with self.tracer.start_as_current_span("verify_connections"):
-            if "llm" not in self.services:
-                logger.error("LLM service has not been set up yet")
-                return False
+            # Check connection to the LLM service
+            retry_count = int(os.getenv("CONNECTION_RETRY_COUNT", "5"))
+            retry_delay = int(os.getenv("CONNECTION_RETRY_DELAY", "10"))
             
-            llm_service = self.services["llm"]
-            llm_url = f"http://{llm_service.host}:{llm_service.port}/api/tags"
+            if retry_count < 10:
+                retry_count = 10  # Increase the number of retries to give Ollama more time to start
+                
+            if retry_delay < 10:
+                retry_delay = 10  # Ensure a minimum 10 second delay between retries
+                
+            logger.info(f"Attempting to connect to Ollama with {retry_count} retries and {retry_delay}s delay")
             
-            for attempt in range(CONNECTION_RETRY_COUNT):
+            # URL for the API to check status
+            api_url = f"http://{LLM_SERVICE_HOST_IP}:{LLM_SERVICE_PORT}/api/tags"
+            
+            for attempt in range(retry_count):
                 try:
-                    logger.info(f"Attempt {attempt+1}/{CONNECTION_RETRY_COUNT} to connect to LLM service: {llm_url}")
+                    logger.info(f"Attempt {attempt+1}/{retry_count} to connect to LLM service: {api_url}")
                     async with aiohttp.ClientSession() as session:
-                        async with session.get(llm_url) as response:
+                        async with session.get(api_url) as response:
                             if response.status == 200:
                                 models = await response.json()
                                 model_count = len(models.get("models", []))
@@ -115,9 +111,9 @@ class LLMService:
                 except Exception as e:
                     logger.warning(f"Failed to connect to LLM service: {str(e)}")
             
-            if attempt < CONNECTION_RETRY_COUNT - 1:
-                logger.info(f"Retrying in {CONNECTION_RETRY_DELAY} seconds...")
-                await asyncio.sleep(CONNECTION_RETRY_DELAY)
+            if attempt < retry_count - 1:
+                logger.info(f"Retrying in {retry_delay} seconds...")
+                await asyncio.sleep(retry_delay)
                 
             logger.error("All connection attempts to LLM service failed")
             return False
@@ -217,9 +213,6 @@ class LLMService:
             # Register request handler and start service
             self.service.add_route(self.endpoint, self.handle_request, methods=["POST"])
             
-            # Instrument FastAPI app with OpenTelemetry
-            FastAPIInstrumentor.instrument_app(self.service.app)
-            
             logger.info(f"Starting service with endpoint: {self.endpoint}")
             self.service.start()
     
@@ -251,17 +244,11 @@ class LLMService:
         
     async def handle_request(self, request: Request) -> ChatCompletionResponse:
         """Handle incoming chat completion requests."""
-        with self.tracer.start_as_current_span("handle_request") as span:
+        with self.tracer.start_as_current_span("handle_request"):
             try:
                 # Parse and validate request
                 data = await request.json()
                 chat_request = ChatCompletionRequest.model_validate(data)
-                
-                # Add metadata to span
-                span.set_attribute("llm.model", chat_request.model or DEFAULT_MODEL)
-                span.set_attribute("llm.max_tokens", chat_request.max_tokens or DEFAULT_MAX_TOKENS)
-                span.set_attribute("llm.temperature", chat_request.temperature or 0.7)
-                span.set_attribute("llm.stream", chat_request.stream or False)
                 
                 # Create LLM parameters
                 llm_params = LLMParams(
@@ -316,24 +303,21 @@ class LLMService:
                 
             except Exception as e:
                 logger.exception(f"Error processing request: {e}")
-                span.record_exception(e)
-                span.set_status(trace.StatusCode.ERROR, str(e))
                 raise HTTPException(status_code=500, detail=str(e))
     
     def _extract_content(self, result: Any) -> str:
         """Extract content from various response formats."""
-        with self.tracer.start_as_current_span("extract_content"):
-            if isinstance(result, dict):
-                if 'choices' in result and len(result['choices']) > 0:
-                    return result['choices'][0].get('message', {}).get('content', '')
-                elif 'error' in result:
-                    error = result['error']
-                    raise HTTPException(
-                        status_code=400 if error.get('type') == 'invalid_request_error' else 500,
-                        detail=error.get('message', 'Unknown error')
-                    )
-            
-            return str(result)
+        if isinstance(result, dict):
+            if 'choices' in result and len(result['choices']) > 0:
+                return result['choices'][0].get('message', {}).get('content', '')
+            elif 'error' in result:
+                error = result['error']
+                raise HTTPException(
+                    status_code=400 if error.get('type') == 'invalid_request_error' else 500,
+                    detail=error.get('message', 'Unknown error')
+                )
+        
+        return str(result)
 
 
 async def startup() -> None:
@@ -344,12 +328,58 @@ async def startup() -> None:
     # Create and start the service
     service = LLMService()
     if await service.initialize():
-        service.start()
+        # Don't call start() directly - modify to use async pattern instead
+        try:
+            # Register routes directly here
+            from fastapi import FastAPI
+            from uvicorn import Config, Server
+            
+            # Create FastAPI app
+            app = FastAPI()
+            
+            # Add routes manually
+            @app.get("/health")
+            async def health():
+                logger.info("Health check endpoint called")
+                return await service.health_check(None)
+                
+            @app.get("/models")
+            async def models():
+                logger.info("Models endpoint called")
+                return await service.list_models(None)
+                
+            @app.post(service.endpoint)
+            async def handle_request(request: Request):
+                logger.info(f"Request received at {service.endpoint}")
+                try:
+                    result = await service.handle_request(request)
+                    logger.info(f"Request processed successfully: {type(result)}")
+                    return result
+                except Exception as e:
+                    logger.exception(f"Error processing request: {e}")
+                    raise
+                
+            # Log startup with VERY visible messages
+            logger.info("=" * 50)
+            logger.info(f"MEGA SERVICE STARTING ON {service.host}:{service.port}")
+            logger.info(f"ENDPOINT: {service.endpoint}")
+            logger.info(f"OLLAMA HOST: {LLM_SERVICE_HOST_IP}")
+            logger.info(f"OLLAMA PORT: {LLM_SERVICE_PORT}")
+            logger.info(f"DEFAULT MODEL: {DEFAULT_MODEL}")
+            logger.info("=" * 50)
+            
+            # Start the server using uvicorn directly
+            config = Config(app, host=service.host, port=service.port)
+            server = Server(config)
+            await server.serve()
+        except Exception as e:
+            logger.exception(f"Error starting service: {e}")
+            exit(1)
     else:
         logger.error("Failed to initialize service, exiting...")
         exit(1)
 
 
 if __name__ == "__main__":
-    # Create and start the service
+    # Use asyncio.run to start the async function
     asyncio.run(startup())
