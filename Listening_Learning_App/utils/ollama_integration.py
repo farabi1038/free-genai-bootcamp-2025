@@ -5,6 +5,7 @@ import requests
 import random
 import time
 import gc
+import re
 from typing import List, Dict, Any, Optional
 
 # Configure logging
@@ -599,4 +600,138 @@ def translate_text(text, source_lang="ja", target_lang="en"):
         
     except Exception as e:
         logger.error(f"Error translating text: {str(e)}")
-        return f"Translation error: {str(e)}" 
+        return f"Translation error: {str(e)}"
+
+async def extract_natural_questions_from_transcript(transcript_segments, max_questions=5, ollama_model=DEFAULT_MODEL):
+    """
+    Extract natural questions from a transcript by identifying actual questions in the conversation
+    rather than generating new questions about the content.
+    
+    Args:
+        transcript_segments: List of transcript segments with timestamps
+        max_questions: Maximum number of questions to extract (default: 5)
+        ollama_model: Ollama model to use
+        
+    Returns:
+        list: List of extracted questions with conversation context
+    """
+    try:
+        # Initialize Ollama client
+        client = OllamaClient(model=ollama_model)
+        
+        # Prepare the transcript text with timestamps
+        transcript_text = ""
+        for segment in transcript_segments:
+            start_time = segment.get("start", 0)
+            end_time = start_time + segment.get("duration", 0)
+            text = segment.get("text", "")
+            transcript_text += f"[{start_time:.2f}-{end_time:.2f}] {text}\n"
+        
+        # System prompt to set context
+        system_prompt = """
+        You are a Japanese language assistant who helps find natural questions in conversations.
+        Your task is to analyze a transcript and identify real questions being asked within the conversation.
+        For each question, you'll provide the question itself, possible answers from the conversation,
+        and the surrounding context to help understand the question and answer.
+        """
+        
+        # Prepare the prompt to extract natural questions
+        prompt = f"""
+        I want you to analyze this transcript and find {max_questions} natural questions that appear in the conversation.
+        
+        Transcript with timestamps:
+        ```
+        {transcript_text}
+        ```
+        
+        For each question you find:
+        1. Identify the exact question being asked in the conversation
+        2. Find the answer to this question (if provided in the conversation)
+        3. Extract the surrounding conversation context (2-3 lines before and after)
+        4. Note the timestamp where the question occurs
+        
+        Format your response as JSON:
+        ```json
+        [
+          {{
+            "question_text": "The exact question in Japanese from the transcript with English translation",
+            "segment_start": start_timestamp_of_question,
+            "segment_end": end_timestamp_of_question,
+            "options": [
+              "The correct answer from the conversation",
+              "Alternative option 1",
+              "Alternative option 2",
+              "Alternative option 3"
+            ],
+            "correct_answer": 0,
+            "context_before": "2-3 lines of conversation before the question",
+            "context_after": "2-3 lines of conversation after the question (including the answer)",
+            "question_type": "natural"
+          }}
+        ]
+        ```
+        
+        If you can't find enough natural questions, then create a few questions about the content.
+        Use a different question_type value of "generated" for these.
+        
+        Return ONLY valid JSON, no additional text.
+        ```json
+        """
+        
+        # Extract questions
+        logger.info(f"Extracting natural questions from transcript using {ollama_model}")
+        response = await client.generate(prompt, system_prompt, temperature=0.3, max_tokens=2048)
+        
+        # Try to extract JSON from the response
+        try:
+            # First look for JSON between triple backticks
+            json_match = re.search(r'```json\s*(.*?)```', response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1).strip()
+            else:
+                # If no markdown blocks, try to find array directly
+                json_start = response.find('[')
+                json_end = response.rfind(']') + 1
+                if json_start >= 0 and json_end > json_start:
+                    json_str = response[json_start:json_end]
+                else:
+                    # No valid JSON found
+                    raise ValueError("No valid JSON found in model response")
+            
+            # Parse the JSON
+            questions = json.loads(json_str)
+            
+            # Add IDs and ensure other required fields
+            for i, question in enumerate(questions):
+                if "id" not in question:
+                    question["id"] = f"natural_q_{int(time.time())}_{i}"
+                
+                # Set question type to "natural" if not specified
+                if "question_type" not in question:
+                    question["question_type"] = "natural"
+                
+                # Ensure we have options and correct_answer
+                if "options" not in question or not question["options"]:
+                    question["options"] = ["Yes", "No", "Maybe", "Not mentioned"]
+                    question["correct_answer"] = 0
+                
+                # Set exercise type
+                question["type"] = "multiple_choice"
+            
+            # Limit to max questions
+            questions = questions[:max_questions]
+            logger.info(f"Extracted {len(questions)} natural questions from transcript")
+            
+            return questions
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON from response: {str(e)}")
+            logger.debug(f"Response was: {response[:500]}...")
+            return []
+        except Exception as e:
+            logger.error(f"Error processing questions: {str(e)}")
+            return []
+    
+    except Exception as e:
+        logger.error(f"Error extracting natural questions: {str(e)}")
+        return [] 

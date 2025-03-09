@@ -39,6 +39,7 @@ requests==2.31.0
 numpy==1.26.2
 pandas==2.1.3
 multiprocessing-logging==0.3.4  # For safer logging in multiprocessing
+beautifulsoup4==4.12.3  # For parsing HTML content (YouTube video titles)
 
 # Memory management
 psutil==5.9.6  # For monitoring system resources 

@@ -12,6 +12,7 @@ import logging
 import time
 import uuid
 import asyncio
+import traceback
 
 # Add parent directory to path to allow imports from other project modules
 sys.path.append(str(Path(__file__).parent.parent))
@@ -19,7 +20,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 # Import utility modules
 from utils.youtube import extract_video_id, get_video_info, get_youtube_transcript, download_youtube_audio, get_or_download_transcript
 from utils.whisper_asr import transcribe_audio
-from utils.ollama_integration import generate_exercises, check_answer
+from utils.ollama_integration import generate_exercises, check_answer, extract_natural_questions_from_transcript
 from utils.tts import text_to_speech
 
 # Configure logging
@@ -515,10 +516,19 @@ async def process_video(video_id: str, youtube_url: str):
             conn.commit()
             conn.close()
         
-        # 3. Generate exercises based on transcript
-        exercises = await generate_exercises(transcript, num_exercises=5)
+        # 3. Try to extract natural questions from the transcript
+        natural_exercises = await extract_natural_questions_from_transcript(transcript, max_questions=5)
         
-        # 4. Save exercises to database
+        # If we found natural questions, use those
+        if natural_exercises and len(natural_exercises) > 0:
+            logger.info(f"Using {len(natural_exercises)} natural questions extracted from transcript")
+            exercises = natural_exercises
+        else:
+            # 4. Fall back to generating exercises with our regular approach
+            logger.info("No natural questions found, generating exercises instead")
+            exercises = await generate_exercises(transcript, num_exercises=5)
+        
+        # 5. Save exercises to database
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -526,33 +536,39 @@ async def process_video(video_id: str, youtube_url: str):
             exercise_id = exercise.get("id", str(uuid.uuid4()))
             options_json = json.dumps(exercise.get("options")) if exercise.get("options") else None
             
+            # Get context fields if present
+            context_before = exercise.get("context_before", "")
+            context_after = exercise.get("context_after", "")
+            question_type = exercise.get("question_type", "generated")
+            
+            # Adjust the question field
+            question = exercise.get("question_text", exercise.get("question", ""))
+            
             cursor.execute(
                 """
-                INSERT INTO exercises 
-                (id, video_id, segment_start, segment_end, question, type, options, correct_answer, difficulty) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO exercises (
+                    id, video_id, type, segment_start, segment_end, 
+                    question, options, correct_answer, context_before, context_after, question_type
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    exercise_id, 
-                    video_id,
-                    exercise.get("segment_start", 0),
-                    exercise.get("segment_end", 0),
-                    exercise["question"],
-                    exercise["type"],
-                    options_json,
-                    exercise["correct_answer"],
-                    exercise.get("difficulty", "intermediate")
+                    exercise_id, video_id, exercise.get("type", "multiple_choice"),
+                    exercise.get("segment_start"), exercise.get("segment_end"),
+                    question, options_json, exercise.get("correct_answer", 0),
+                    context_before, context_after, question_type
                 )
             )
         
         conn.commit()
         conn.close()
         
-        logger.info(f"Video {video_id} processed successfully with {len(exercises)} exercises")
+        logger.info(f"Successfully processed video {video_id} with {len(exercises)} exercises")
+        return exercises
         
     except Exception as e:
-        logger.error(f"Error processing video {video_id}: {str(e)}")
-        # In a production environment, you might want to update the video status in the database
+        logger.error(f"Error processing video: {str(e)}")
+        logger.error(traceback.format_exc())
+        return []
 
 # Run the server when script is executed directly
 if __name__ == "__main__":
