@@ -35,19 +35,30 @@ class AudioExerciseGenerator:
         self.tts = JapaneseTTS()
         self.jlpt_level = jlpt_level
         
-        # Clean up old exercises to save space
-        self._cleanup_old_exercises()
+        # Clean up old exercises to save space - keep only 3 exercises
+        self._cleanup_old_exercises(max_exercises=3)
     
-    def _cleanup_old_exercises(self, max_exercises=20):
-        """Clean up old exercises to save disk space"""
+    def _cleanup_old_exercises(self, max_exercises=3):
+        """Clean up old exercises to save disk space
+        
+        Args:
+            max_exercises: Maximum number of exercises to keep (default: 3)
+        """
         try:
             # Get all exercise files
             exercise_files = list(EXERCISES_DIR.glob("exercise_*.json"))
+            
+            # Log how many exercises we found
+            logger.info(f"Found {len(exercise_files)} existing exercises, will keep at most {max_exercises}")
             
             # If we have more than max_exercises, delete the oldest ones
             if len(exercise_files) > max_exercises:
                 # Sort by modification time (oldest first)
                 exercise_files.sort(key=lambda f: f.stat().st_mtime)
+                
+                # Calculate how many to delete
+                num_to_delete = len(exercise_files) - max_exercises
+                logger.info(f"Deleting {num_to_delete} oldest exercises to keep only {max_exercises}")
                 
                 # Delete the oldest ones, keeping only max_exercises
                 for file_to_delete in exercise_files[:-max_exercises]:
@@ -59,6 +70,7 @@ class AudioExerciseGenerator:
                         # Delete the audio file if it exists
                         if audio_file.exists():
                             audio_file.unlink()
+                            logger.info(f"Deleted associated audio file: {audio_file.name}")
                             
                         # Delete the exercise file
                         file_to_delete.unlink()
@@ -310,55 +322,161 @@ class AudioExerciseGenerator:
         logger.info(f"Exercise saved to {output_path}")
         return exercise_data
     
-    def list_stored_exercises(self, max_count=10):
-        """List stored exercises"""
+    def list_stored_exercises(self, max_count=3):
+        """List stored exercises
+        
+        Args:
+            max_count: Maximum number of exercises to return (default: 3)
+            
+        Returns:
+            list: List of exercise metadata dictionaries, sorted newest first
+        """
         exercises = []
         
         for file_path in EXERCISES_DIR.glob("exercise_*.json"):
             try:
+                # Get the file path as string for logging
+                file_path_str = str(file_path)
+                logger.info(f"Loading exercise from {file_path_str}")
+                
                 with open(file_path, 'r', encoding='utf-8') as f:
                     exercise = json.load(f)
                     
+                    # Debug log to see the loaded exercise data
+                    logger.info(f"Loaded exercise ID: {exercise.get('id', 'unknown')}")
+                    
                     # Check if audio actually exists
                     has_audio = False
-                    if exercise.get("main_audio") and os.path.exists(exercise.get("main_audio")):
+                    if exercise.get("main_audio") and os.path.exists(exercise.get("main_audio", '')):
                         has_audio = True
+                        logger.info(f"Audio exists at {exercise.get('main_audio')}")
                     elif exercise.get("audio_paths"):
                         for audio_path in exercise.get("audio_paths", []):
                             if audio_path and os.path.exists(audio_path):
                                 has_audio = True
+                                logger.info(f"Audio exists in audio_paths: {audio_path}")
                                 break
                     
+                    # Ensure timestamp is properly formatted for comparison
+                    timestamp = exercise.get("timestamp", 0)
+                    # Convert ISO format timestamp to sortable value if it's a string
+                    if isinstance(timestamp, str):
+                        try:
+                            # Try parsing as ISO format datetime
+                            timestamp = datetime.fromisoformat(timestamp).timestamp()
+                            logger.info(f"Converted timestamp: {timestamp}")
+                        except (ValueError, TypeError) as e:
+                            # If parsing fails, use file modification time as fallback
+                            logger.warning(f"Error parsing timestamp '{timestamp}': {str(e)}")
+                            timestamp = os.path.getmtime(file_path)
+                            logger.info(f"Using file mtime as fallback: {timestamp}")
+                    
+                    # Extract exercise ID from filename as fallback
+                    exercise_id = exercise.get("id", "unknown")
+                    if exercise_id == "unknown":
+                        # Try to extract ID from filename
+                        match = re.search(r'exercise_([a-f0-9-]+)\.json', file_path_str)
+                        if match:
+                            exercise_id = match.group(1)
+                            logger.info(f"Extracted ID from filename: {exercise_id}")
+                    
                     exercises.append({
-                        "id": exercise.get("id", "unknown"),
-                        "timestamp": exercise.get("timestamp", 0),
+                        "id": exercise_id,
+                        "timestamp": timestamp,
                         "jlpt_level": exercise.get("jlpt_level", "unknown"),
                         "topic": exercise.get("topic", ""),
                         "num_questions": exercise.get("num_questions", 0),
                         "has_audio": has_audio,
-                        "file_path": str(file_path)
+                        "file_path": file_path_str
                     })
             except Exception as e:
                 logger.error(f"Error loading exercise from {file_path}: {str(e)}")
+                # Add detailed error info
+                logger.error(traceback.format_exc())
         
-        # Sort by timestamp (newest first)
-        exercises.sort(key=lambda x: x["timestamp"], reverse=True)
+        logger.info(f"Loaded {len(exercises)} exercises")
+        
+        # Handle empty list case
+        if not exercises:
+            logger.warning("No exercises found")
+            return []
+        
+        try:
+            # Sort by timestamp (newest first)
+            exercises.sort(key=lambda x: x["timestamp"], reverse=True)
+        except Exception as e:
+            logger.error(f"Error sorting exercises: {str(e)}")
+            logger.error(traceback.format_exc())
+            # Try converting all timestamps to strings for safe comparison
+            for ex in exercises:
+                ex["timestamp"] = str(ex["timestamp"])
+            # Sort by string representation of timestamp
+            exercises.sort(key=lambda x: x["timestamp"], reverse=True)
         
         return exercises[:max_count]
     
     def get_exercise_by_id(self, exercise_id):
         """Get a stored exercise by ID"""
+        logger.info(f"Looking for exercise with ID: {exercise_id}")
+        
+        # Guard against None or empty ID
+        if not exercise_id:
+            logger.error("Empty exercise ID provided")
+            return None
+            
+        # Try the direct path first
         exercise_path = EXERCISES_DIR / f"exercise_{exercise_id}.json"
+        exercise_path_str = str(exercise_path)
+        logger.info(f"Checking for exercise file at: {exercise_path_str}")
         
         if not exercise_path.exists():
-            logger.error(f"Exercise not found: {exercise_id}")
+            logger.error(f"Exercise file not found: {exercise_path_str}")
+            
+            # Try to find the file with a glob pattern as fallback
+            logger.info("Trying to find exercise by searching all exercise files...")
+            all_exercises = list(EXERCISES_DIR.glob("exercise_*.json"))
+            logger.info(f"Found {len(all_exercises)} exercise files total")
+            
+            for exercise_file in all_exercises:
+                try:
+                    with open(exercise_file, 'r', encoding='utf-8') as f:
+                        exercise_data = json.load(f)
+                        if exercise_data.get('id') == exercise_id:
+                            logger.info(f"Found exercise with matching ID in file: {exercise_file}")
+                            return exercise_data
+                except Exception as e:
+                    logger.error(f"Error checking exercise file {exercise_file}: {str(e)}")
+                    
+            logger.error(f"Exercise ID {exercise_id} not found in any exercise file")
             return None
         
         try:
+            logger.info(f"Loading exercise from: {exercise_path_str}")
             with open(exercise_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                exercise_data = json.load(f)
+                
+                # Check if the loaded exercise has the correct ID
+                if exercise_data.get('id') != exercise_id:
+                    logger.warning(f"Loaded exercise has ID {exercise_data.get('id')}, expected {exercise_id}")
+                
+                # Add a log for the loaded exercise
+                num_questions = len(exercise_data.get('questions', []))
+                logger.info(f"Successfully loaded exercise: {exercise_id}, contains {num_questions} questions")
+                
+                # Check if audio file exists
+                if exercise_data.get('main_audio'):
+                    audio_exists = os.path.exists(exercise_data.get('main_audio'))
+                    logger.info(f"Audio file exists: {audio_exists}, path: {exercise_data.get('main_audio')}")
+                    exercise_data['has_audio'] = audio_exists
+                
+                return exercise_data
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error for exercise {exercise_id}: {str(e)}")
+            logger.error(f"The file exists but contains invalid JSON: {exercise_path_str}")
+            return None
         except Exception as e:
             logger.error(f"Error loading exercise {exercise_id}: {str(e)}")
+            logger.error(traceback.format_exc())
             return None
 
     async def _generate_conversation(self, topic=None):

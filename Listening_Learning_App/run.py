@@ -218,7 +218,7 @@ def check_ollama():
     """Check if Ollama is available and running"""
     try:
         import requests
-        response = requests.get("http://localhost:11434/api/tags", timeout=2)
+        response = requests.get("http://localhost:11434/api/tags", timeout=1)  # Use a shorter timeout
         if response.status_code == 200:
             models = response.json().get("models", [])
             model_names = [model.get("name") for model in models]
@@ -238,13 +238,25 @@ def check_ollama():
         else:
             return {
                 "success": False,
-                "message": f"Ollama API returned status code: {response.status_code}",
+                "message": "Ollama responded with an error. Continuing without Ollama.",
                 "models": []
             }
+    except requests.exceptions.Timeout:
+        return {
+            "success": False,
+            "message": "Ollama check timed out. Continuing without Ollama.",
+            "models": []
+        }
+    except requests.exceptions.ConnectionError:
+        return {
+            "success": False,
+            "message": "Ollama is not running. Continuing without Ollama.",
+            "models": []
+        }
     except Exception as e:
         return {
             "success": False,
-            "message": f"Failed to connect to Ollama: {str(e)}. Please make sure Ollama is installed and running.",
+            "message": f"Could not connect to Ollama: {str(e)}. Continuing without Ollama.",
             "models": []
         }
 
@@ -341,21 +353,41 @@ def print_results(results):
 
 def check_all_dependencies(auto_install=False):
     """Check all dependencies and optionally install missing packages"""
-    # Check Python packages
+    # Check Python packages first - these are essential
     pkg_check = check_python_packages()
     if not pkg_check["success"] and auto_install:
+        logger.info("Attempting to install missing Python packages...")
         if install_packages(pkg_check["missing"]):
             pkg_check = check_python_packages()  # Re-check after installation
     
     # Check system dependencies
     sys_check = check_system_dependencies()
     
-    # Check Ollama
-    ollama_check = check_ollama()
+    # Check Ollama - this is optional and should never block startup
+    try:
+        logger.info("Checking Ollama status (will continue regardless)...")
+        ollama_check = check_ollama()
+    except Exception as e:
+        logger.warning(f"Ollama check failed: {str(e)}. Continuing without Ollama.")
+        ollama_check = {
+            "success": False,
+            "message": f"Ollama check failed: {str(e)}. Continuing without Ollama.",
+            "models": []
+        }
     
-    # Check Whisper models
-    whisper_check = check_whisper_models()
+    # Check Whisper models - this is optional and should never block startup
+    try:
+        logger.info("Checking Whisper models (will continue regardless)...")
+        whisper_check = check_whisper_models()
+    except Exception as e:
+        logger.warning(f"Whisper models check failed: {str(e)}. Continuing without Whisper.")
+        whisper_check = {
+            "success": False,
+            "message": f"Whisper models check failed: {str(e)}. Continuing without Whisper.",
+            "models": []
+        }
     
+    # Collect results
     results = {
         "python_packages": pkg_check,
         "system_dependencies": sys_check,
@@ -366,7 +398,12 @@ def check_all_dependencies(auto_install=False):
     # Print results
     success = print_results(results)
     
-    return success
+    # We continue even if some dependencies are missing - but we need to warn the user
+    if not success:
+        logger.warning("Some dependencies are missing. Some features may not work correctly.")
+    
+    # Return True to indicate we should continue with startup
+    return True
 
 # ================ ORIGINAL RUN.PY FUNCTIONS ================
 
@@ -444,23 +481,20 @@ def start_backend(port, ollama_model, whisper_model):
     
     # Start the backend process
     logger.info(f"Starting backend server on port {port}...")
+    
     try:
-        # Use the correct module path for running the backend
+        # Don't capture stdout/stderr to allow uvicorn logs to show up
         process = subprocess.Popen(
             [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", str(port)],
             env=env,
             cwd=str(Path(__file__).parent)  # Set working directory to project root
         )
         
-        # Wait a bit to ensure the server starts up
-        time.sleep(5)  # Increase wait time to ensure server has time to start
+        # Wait a bit for the server to start without immediately checking the port
+        # The port might not be bound yet even though the process started
+        time.sleep(3)
         
-        # Verify the server is running
-        if not is_port_in_use(port):
-            logger.error(f"Backend server failed to start on port {port}")
-            if process.poll() is not None:
-                logger.error(f"Backend process terminated with exit code {process.returncode}")
-            return None
+        # IMPORTANT: Don't check the port yet - assume the backend is starting since there's no error
         
         # Update config with the new port
         config = load_config()
@@ -469,8 +503,12 @@ def start_backend(port, ollama_model, whisper_model):
             save_config(config)
             logger.info(f"Updated configuration with new backend port: {port}")
         
-        logger.info(f"Backend server successfully started on port {port}")
+        logger.info(f"Backend server started. Uvicorn is initializing on port {port}...")
+        logger.info(f"Uvicorn logs will appear in the terminal directly.")
+        
+        # Return the process without checking if it's ready
         return process
+        
     except Exception as e:
         logger.error(f"Error starting backend: {str(e)}")
         logger.error(f"Failed to start backend server")
@@ -527,17 +565,18 @@ def main():
     parser.add_argument("--backend-port", type=int, help="Port for the backend server")
     parser.add_argument("--ollama-model", type=str, help="Ollama model to use")
     parser.add_argument("--whisper-model", type=str, help="Whisper model to use")
+    parser.add_argument("--skip-backend", action="store_true", help="Skip starting the backend server")
     args = parser.parse_args()
     
     # Check dependencies
-    if not check_all_dependencies(auto_install=args.auto_install):
+    try:
+        dependency_check = check_all_dependencies(auto_install=args.auto_install)
         if args.check_only:
             logger.info("Dependency check completed. Use --auto-install to install missing dependencies.")
             return
-        logger.warning("Some dependencies are missing. The application may not function correctly.")
-    elif args.check_only:
-        logger.info("All dependencies are satisfied.")
-        return
+    except Exception as e:
+        logger.error(f"Error during dependency check: {str(e)}")
+        logger.warning("Continuing with startup despite dependency check errors.")
     
     # Load configuration
     config = load_config()
@@ -555,7 +594,7 @@ def main():
     # Save updated configuration
     save_config(config)
     
-    # Initialize database
+    # Initialize database (but don't let failures stop us)
     try:
         # Import and initialize the database
         from backend.main import initialize_db
@@ -565,109 +604,82 @@ def main():
         logger.error(f"Error initializing database: {str(e)}")
         logger.warning("Continuing with startup, but the application may not function correctly.")
     
-    # Start backend server
-    backend_process = start_backend(
-        config["backend_port"], 
-        config["ollama_model"],
-        config["whisper_model"]
-    )
-    
-    if not backend_process:
-        logger.error("Failed to start backend server")
-        return
+    # Start backend server (unless skipped)
+    backend_process = None
+    if not args.skip_backend:
+        try:
+            backend_process = start_backend(
+                config["backend_port"], 
+                config["ollama_model"],
+                config["whisper_model"]
+            )
+            
+            if not backend_process:
+                logger.warning("Failed to start backend server. YouTube features will not work.")
+                logger.info("Starting frontend only...")
+        except Exception as e:
+            logger.error(f"Error starting backend: {str(e)}")
+            logger.warning("Unable to start backend. YouTube features will not work.")
+    else:
+        logger.info("Skipping backend server as requested with --skip-backend flag.")
+        logger.warning("YouTube features will not be available.")
     
     # Start frontend
-    frontend_process = start_frontend(config["frontend_port"], config["backend_port"])
-    
-    if not frontend_process:
-        logger.error("Failed to start frontend")
+    try:
+        frontend_process = start_frontend(config["frontend_port"], config["backend_port"])
+        
+        if not frontend_process:
+            logger.error("Failed to start frontend. Exiting.")
+            # Kill backend process if frontend fails
+            if backend_process and backend_process.poll() is None:
+                backend_process.terminate()
+            return 1
+    except Exception as e:
+        logger.error(f"Error starting frontend: {str(e)}")
         # Kill backend process if frontend fails
-        backend_process.terminate()
-        return
+        if backend_process and backend_process.poll() is None:
+            backend_process.terminate()
+        return 1
     
     # Wait for processes to complete or be terminated
     try:
+        print("\n" + "="*60)
         print("Application running. Press Ctrl+C to exit.")
-        
-        frontend_crashed = False
-        backend_crashed = False
-        max_restarts = 3
-        restart_count = 0
+        if backend_process:
+            print("Backend server is running - YouTube features should work")
+        else:
+            print("NO BACKEND SERVER - YouTube features will NOT work")
+        print("You can access the frontend at: http://localhost:8501")
+        print("="*60 + "\n")
         
         while True:
-            # Check if processes are still running
+            # If frontend process has exited, we should exit too
+            if frontend_process.poll() is not None:
+                logger.info(f"Frontend process exited with code {frontend_process.returncode}")
+                break
+                
+            # If backend process was started but died, log it but continue running
             if backend_process and backend_process.poll() is not None:
-                exit_code = backend_process.returncode
-                logger.error(f"Backend process terminated with exit code {exit_code}")
-                backend_crashed = True
+                logger.warning(f"Backend process exited with code {backend_process.returncode}")
+                logger.warning("YouTube features will no longer work")
+                backend_process = None  # Clear the reference
                 
-                # Try to restart the backend if it crashed with a non-zero exit code
-                if exit_code != 0 and restart_count < max_restarts:
-                    logger.info(f"Attempting to restart backend (attempt {restart_count + 1}/{max_restarts})...")
-                    restart_count += 1
-                    
-                    # Force cleanup
-                    gc.collect()
-                    
-                    # Restart with same parameters
-                    backend_process = start_backend(
-                        config["backend_port"], 
-                        config["ollama_model"],
-                        config["whisper_model"]
-                    )
-                    
-                    if backend_process:
-                        logger.info("Backend restarted successfully")
-                        backend_crashed = False
-                        time.sleep(3)  # Give it time to start up
-                    else:
-                        logger.error("Failed to restart backend")
-                        break
-                else:
-                    break
-            
-            if frontend_process and frontend_process.poll() is not None:
-                exit_code = frontend_process.returncode
-                logger.error(f"Frontend process terminated with exit code {exit_code}")
-                frontend_crashed = True
-                
-                # Try to restart the frontend if it crashed with a non-zero exit code
-                if exit_code != 0 and restart_count < max_restarts:
-                    logger.info(f"Attempting to restart frontend (attempt {restart_count + 1}/{max_restarts})...")
-                    restart_count += 1
-                    
-                    # Force cleanup
-                    gc.collect()
-                    
-                    # Restart with same parameters
-                    frontend_process = start_frontend(config["frontend_port"], config["backend_port"])
-                    
-                    if frontend_process:
-                        logger.info("Frontend restarted successfully")
-                        frontend_crashed = False
-                        time.sleep(3)  # Give it time to start up
-                    else:
-                        logger.error("Failed to restart frontend")
-                        break
-                else:
-                    break
-            
-            # If both processes are running, reset the restart counter
-            if (not frontend_crashed and not backend_crashed) and restart_count > 0:
-                restart_count = 0
-            
             time.sleep(1)
     except KeyboardInterrupt:
         logger.info("Shutting down...")
     finally:
         # Clean up processes
         if backend_process and backend_process.poll() is None:
+            logger.info("Terminating backend process...")
             backend_process.terminate()
-            logger.info("Backend process terminated")
-        
+            
         if frontend_process and frontend_process.poll() is None:
+            logger.info("Terminating frontend process...")
             frontend_process.terminate()
-            logger.info("Frontend process terminated")
+            
+        logger.info("Application shutdown complete")
+        
+    return 0
 
 if __name__ == "__main__":
     sys.exit(main()) 

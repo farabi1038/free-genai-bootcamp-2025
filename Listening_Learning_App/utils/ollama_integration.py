@@ -174,7 +174,8 @@ async def generate_exercises(
     ollama_model=DEFAULT_MODEL
 ):
     """
-    Generate exercises based on transcript segments
+    Generate exercises based on transcript segments, with special handling for
+    introduction and conversation parts.
     
     Args:
         transcript_segments: List of transcript segments
@@ -189,19 +190,56 @@ async def generate_exercises(
         # Initialize Ollama client
         client = OllamaClient(model=ollama_model)
         
-        # Prepare the transcript text
-        transcript_text = ""
+        # Analyze the transcript to identify introduction and conversation parts
+        # Typically, introductions are at the beginning and shorter than the main content
+        total_duration = sum(segment.get("duration", 0) for segment in transcript_segments)
+        
+        # Basic heuristic: first 15-20% is likely introduction
+        intro_threshold = total_duration * 0.2
+        current_time = 0
+        intro_segments = []
+        conversation_segments = []
+        
         for segment in transcript_segments:
+            start_time = segment.get("start", 0)
+            duration = segment.get("duration", 0)
+            
+            if current_time < intro_threshold:
+                intro_segments.append(segment)
+            else:
+                conversation_segments.append(segment)
+                
+            current_time += duration
+        
+        # Prepare the intro and conversation texts
+        intro_text = ""
+        for segment in intro_segments:
             start_time = segment.get("start", 0)
             end_time = start_time + segment.get("duration", 0)
             text = segment.get("text", "")
-            transcript_text += f"[{start_time:.2f}-{end_time:.2f}] {text}\n"
+            intro_text += f"[{start_time:.2f}-{end_time:.2f}] {text}\n"
+            
+        conversation_text = ""
+        for segment in conversation_segments:
+            start_time = segment.get("start", 0)
+            end_time = start_time + segment.get("duration", 0)
+            text = segment.get("text", "")
+            conversation_text += f"[{start_time:.2f}-{end_time:.2f}] {text}\n"
         
-        # System prompt to set context
+        # Combine all segments for full context
+        complete_transcript = intro_text + "\n" + conversation_text
+        
+        # System prompt to set context with awareness of structure
         system_prompt = """
         You are a Japanese language teacher creating listening comprehension exercises for students. 
-        You will receive a transcript of a Japanese audio clip with timestamps.
+        You will receive a transcript of a Japanese video with timestamps, divided into introduction and conversation parts.
         Your task is to create exercises that test the student's understanding of the content.
+        
+        Important guidelines:
+        1. Create more challenging questions about the conversation section
+        2. For the introduction section, focus on identifying the topic and purpose
+        3. Always include timestamps with each question so students know which part to focus on
+        4. Include both Japanese text and English translations in questions and answers
         """
         
         # Create different exercise types based on difficulty
@@ -209,63 +247,72 @@ async def generate_exercises(
         
         # Prepare the prompt
         prompt = f"""
-        Please create {num_exercises} Japanese listening comprehension exercises based on this transcript:
+        Please create {num_exercises} Japanese listening comprehension exercises based on this transcript.
+        The transcript has introduction and conversation parts:
+
+        INTRODUCTION:
+        {intro_text}
         
-        {transcript_text}
+        MAIN CONVERSATION:
+        {conversation_text}
         
-        Create exercises of the following types: {', '.join(exercise_types)}
+        Create {num_exercises} exercises with this distribution:
+        - 1 question about the introduction (what is the video about)
+        - {num_exercises-1} questions about the conversation content
+        
+        Use these exercise types: {', '.join(exercise_types)}
         
         For each exercise, include:
         1. The segment timestamps it refers to
-        2. A question in English
-        3. The correct answer
-        4. For multiple choice, include 4 options
+        2. A question in both Japanese and English
+        3. For multiple choice: 4 options with the correct one marked
+        4. For fill-in: The word or phrase to fill in (max 3 words)
         
-        Difficulty level: {difficulty}
-        
-        Format the exercises as a JSON array with the following structure for each exercise:
-        {{
+        Format your response as JSON:
+        ```json
+        [
+          {
+            "id": "unique_id",
+            "segment_start": start_time,
+            "segment_end": end_time,
+            "question": "Question text in Japanese (English translation)",
             "type": "multiple_choice|fill_in|free_form",
-            "segment_start": start_time_in_seconds,
-            "segment_end": end_time_in_seconds,
-            "question": "Question text in English",
-            "options": ["Option 1", "Option 2", "Option 3", "Option 4"],  # For multiple_choice only
-            "correct_answer": "Correct answer",
-            "difficulty": "{difficulty}"
-        }}
+            "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+            "correct_answer": "The correct answer",
+            "difficulty": "intermediate"
+          }
+        ]
+        ```
+        
+        Only respond with valid JSON. No additional text or explanations.
         """
         
         # Generate exercises
-        response = await client.generate(
-            prompt=prompt, 
-            system_prompt=system_prompt,
-            temperature=0.7
-        )
+        logger.info(f"Generating {num_exercises} exercises with model {ollama_model}")
+        response = await client.generate(prompt, system_prompt, temperature=0.7)
+        logger.info(f"Got response of length {len(response)}")
         
-        # Extract the JSON from the response
-        # First try to find a JSON array in the response
-        json_start = response.find('[')
-        json_end = response.rfind(']') + 1
-        
-        if json_start >= 0 and json_end > json_start:
-            json_str = response[json_start:json_end]
-            try:
-                exercises = json.loads(json_str)
-                # Add IDs to exercises
-                for i, exercise in enumerate(exercises):
-                    exercise["id"] = f"ex{i+1}_{int(time.time())}"
-                return exercises
-            except json.JSONDecodeError:
-                logger.error("Failed to parse JSON from Ollama response")
-        
-        # If no valid JSON array is found, try to parse exercises manually
-        logger.warning("No valid JSON found in response, attempting manual extraction")
-        return manual_exercise_extraction(response, difficulty)
-        
+        # Try to extract JSON
+        try:
+            exercises = json.loads(response)
+            logger.info(f"Successfully parsed {len(exercises)} exercises")
+            
+            # Add a unique ID to each exercise if not present
+            for i, exercise in enumerate(exercises):
+                if "id" not in exercise:
+                    exercise["id"] = f"ex_{int(time.time())}_{i}"
+            
+            return exercises
+        except json.JSONDecodeError:
+            logger.warning("Failed to parse JSON response, attempting manual extraction")
+            # Try to manually extract exercises
+            exercises = manual_exercise_extraction(response, difficulty)
+            return exercises
+            
     except Exception as e:
         logger.error(f"Error generating exercises: {str(e)}")
-        # Return some default exercises in case of error
-        return generate_default_exercises(difficulty)
+        # Return some default exercises
+        return generate_default_exercises(difficulty, num_exercises)
 
 def get_exercise_types_by_difficulty(difficulty):
     """Get appropriate exercise types based on difficulty level"""
