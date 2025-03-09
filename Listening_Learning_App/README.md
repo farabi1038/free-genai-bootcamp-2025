@@ -89,7 +89,7 @@ Listening_Learning_App/
 
 1. **Clone or download the repository**:
    ```bash
-   git clone https://github.com/yourusername/free-genai-bootcamp-2025.git
+   git clone https://github.com/farabi1038/free-genai-bootcamp-2025.git
    cd free-genai-bootcamp-2025/Listening_Learning_App
    ```
 
