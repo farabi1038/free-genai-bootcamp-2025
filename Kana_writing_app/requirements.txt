@@ -1,0 +1,12 @@
+streamlit==1.32.0
+streamlit-drawable-canvas==0.9.2
+Pillow==10.1.0
+requests==2.31.0
+python-dotenv==1.0.0
+manga-ocr==0.1.10
+numpy==1.26.3
+opencv-python==4.9.0.80
+torch==2.2.0
+transformers==4.37.2
+pydantic==2.5.3
+tqdm==4.66.1 
