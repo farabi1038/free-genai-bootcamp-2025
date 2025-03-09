@@ -50,7 +50,7 @@ def check_ollama_availability():
     logger.info("Checking Ollama availability...")
     
     # First try to get the preferred model from config
-    preferred_model = "llama3.2:3b"
+    preferred_model = "llama3.2:1b"
     try:
         config_path = Path(__file__).parent.parent / "config.json"
         if config_path.exists():
@@ -810,74 +810,7 @@ def render_extract_questions():
     with col2:
         extract_btn = st.button("質問・会話を抽出する (Extract Questions/Conversations)", key="extract_btn", use_container_width=True)
     
-    # Display help for methods
-    with st.expander("抽出方法の説明 (Extraction Method Details)", expanded=False):
-        st.markdown("""
-        ### 字幕から抽出 (Extract from Captions)
-        - YouTubeの字幕データを使用します
-        - 高速ですが、字幕の品質に依存します
-        - 言語パターンに基づいて質問を検出します
-        
-        ### AI抽出 (Whisper + Ollama)
-        - 音声を直接Whisperで文字起こしします
-        - Ollamaのローカルモデルを使って質問と文脈を抽出します
-        - より高品質ですが、処理に時間がかかります
-        - **要件**: 以下のパッケージとサービスが必要です:
-          - Whisper: `pip install openai-whisper`
-          - yt-dlp: `pip install yt-dlp`
-          - FFmpeg: OS依存（例：Ubuntu `apt install ffmpeg`、Windows [ダウンロード](https://ffmpeg.org/download.html)）
-          - Ollama: [公式サイト](https://ollama.ai/)からインストール
-        
-        インストール後、Ollamaを実行するには:
-        ```
-        ollama serve
-        ```
-        
-        おすすめのモデル:
-        ```
-        ollama pull llama3.2:3b  # 推奨モデル
-        ```
-        """)
-    
-    # Also provide a way to install the packages
-    if method == "AI抽出 (Whisper + Ollama)":
-        with st.expander("パッケージのインストール方法 (Package Installation)", expanded=False):
-            st.markdown("""
-            ### yt-dlp のインストール
-            ```bash
-            pip install yt-dlp
-            ```
-            
-            ### Whisper のインストール
-            ```bash
-            pip install openai-whisper
-            ```
-            
-            ### FFmpeg のインストール
-            
-            #### Ubuntu/Debian:
-            ```bash
-            sudo apt update
-            sudo apt install ffmpeg
-            ```
-            
-            #### Windows:
-            1. [FFmpeg公式サイト](https://ffmpeg.org/download.html)からFFmpegをダウンロード
-            2. ZIPファイルを展開し、binフォルダをPATHに追加
-            
-            #### MacOS:
-            ```bash
-            brew install ffmpeg
-            ```
-            
-            ### Ollama のインストール
-            1. [Ollama公式サイト](https://ollama.ai/)にアクセス
-            2. OSに合わせたバージョンをダウンロードしてインストール
-            3. ターミナルで `ollama serve` を実行
-            4. 新しいターミナルで `ollama pull llama3.2:3b` を実行してモデルをダウンロード
-            """)
-            
-            st.info("パッケージをインストールしたら、アプリケーションを再起動してください。")
+    # Display help for methods - removed as per user request
     
     # Check if Ollama is available for AI method
     if method == "AI抽出 (Whisper + Ollama)" and not st.session_state.get("ollama_available", False):
@@ -891,7 +824,7 @@ def render_extract_questions():
     
     if extract_btn:
         if not youtube_url:
-            st.error("YouTubeのURLを入力してください (Please enter a YouTube URL)")
+            st.error("YouTubeのURLを入力してください。(Please enter a YouTube URL.)")
         else:
             st.session_state["youtube_url"] = youtube_url
             with st.spinner("動画から質問・会話を抽出しています... (Extracting content from video...)"):
@@ -1180,7 +1113,7 @@ def extract_questions_with_ai(video_url):
                 """
                 
                 # Get the selected model
-                model = st.session_state.get("ollama_model", "mistral")
+                model = st.session_state.get("ollama_model", "llama3.2:1b")
                 
                 # Prepare the transcript (truncate if too long)
                 max_length = 6000  # Avoid context length issues
@@ -1366,10 +1299,10 @@ def main():
         if st.session_state.get("ollama_available", False):
             st.success("✅ Ollama is available")
             # Display model selection
-            current_model = st.session_state.get("ollama_model", "mistral")
+            current_model = st.session_state.get("ollama_model", "llama3.2:1b")
             
             # Standard models that might be available
-            standard_models = ["llama3", "mistral", "gemma", "codellama", "llama3.2:1b", "phi3", "wizardcoder", "solar", "qwen"]
+            standard_models = ["llama3.2:1b", "llama3", "mistral", "gemma", "codellama", "phi3", "wizardcoder", "solar", "qwen"]
             
             # Try to get available models from Ollama
             available_models = []
