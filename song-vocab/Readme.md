@@ -42,7 +42,7 @@ The core of Song-Vocab is a ReAct (Reasoning and Acting) agent that:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/song-vocab.git
+   git clone https://github.com/farabi1038/song-vocab](https://github.com/farabi1038/free-genai-bootcamp-2025/tree/main/song-vocab.git
    cd song-vocab
    ```
 
