@@ -1,0 +1,11 @@
+fastapi==0.109.0
+uvicorn==0.27.0
+ollama==0.1.6
+instructor==0.4.5
+pydantic==2.6.1
+aiohttp==3.9.3
+beautifulsoup4==4.12.3
+python-dotenv
+google-search-results
+duckduckgo-search==4.1.0
+serpapi==0.1.0
